@@ -1,15 +1,10 @@
-package net.woggioni.gradle.executable.jar;
+package net.woggioni.gradle.envelope;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.security.MessageDigest;
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -26,8 +21,8 @@ import javax.inject.Inject;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import net.woggioni.executable.jar.Common;
-import net.woggioni.executable.jar.Constants;
+import net.woggioni.envelope.Common;
+import net.woggioni.envelope.Constants;
 import org.gradle.api.GradleException;
 import org.gradle.api.internal.file.CopyActionProcessingStreamAction;
 import org.gradle.api.internal.file.copy.CopyAction;
@@ -46,16 +41,15 @@ import org.gradle.util.GradleVersion;
 
 import static java.util.zip.Deflater.BEST_COMPRESSION;
 import static java.util.zip.Deflater.NO_COMPRESSION;
-import static net.woggioni.executable.jar.Constants.*;
 
 @SuppressWarnings({"unused" })
-public class ExecutableJarTask extends AbstractArchiveTask {
+public class EnvelopeJarTask extends AbstractArchiveTask {
 
     private static final String MINIMUM_GRADLE_VERSION = "6.0";
 
     static {
         if (GradleVersion.current().compareTo(GradleVersion.version(MINIMUM_GRADLE_VERSION)) < 0) {
-            throw new GradleException(ExecutableJarTask.class.getName() +
+            throw new GradleException(EnvelopeJarTask.class.getName() +
                     " requires Gradle " + MINIMUM_GRADLE_VERSION + " or newer.");
         }
     }
@@ -78,12 +72,12 @@ public class ExecutableJarTask extends AbstractArchiveTask {
     }
 
     public void includeLibraries(Object... files) {
-        into(LIBRARIES_FOLDER, (copySpec) -> copySpec.from(files));
+        into(Constants.LIBRARIES_FOLDER, (copySpec) -> copySpec.from(files));
     }
 
 
     @Inject
-    public ExecutableJarTask(ObjectFactory objects) {
+    public EnvelopeJarTask(ObjectFactory objects) {
         setGroup("build");
         setDescription("Creates an executable jar file, embedding all of its runtime dependencies");
         BasePluginExtension basePluginExtension = getProject().getExtensions().getByType(BasePluginExtension.class);
@@ -91,7 +85,7 @@ public class ExecutableJarTask extends AbstractArchiveTask {
         getArchiveBaseName().convention(getProject().getName());
         getArchiveExtension().convention("jar");
         getArchiveVersion().convention(getProject().getVersion().toString());
-        getArchiveAppendix().convention("executable");
+        getArchiveAppendix().convention("envelope");
         exclude("**/module-info.class");
 
         mainClass = objects.property(String.class);
@@ -122,14 +116,14 @@ public class ExecutableJarTask extends AbstractArchiveTask {
         @SneakyThrows
         public void processFile(FileCopyDetailsInternal fileCopyDetails) {
             String entryName = fileCopyDetails.getRelativePath().toString();
-            if (!fileCopyDetails.isDirectory() && entryName.startsWith(LIBRARIES_FOLDER)) {
+            if (!fileCopyDetails.isDirectory() && entryName.startsWith(Constants.LIBRARIES_FOLDER)) {
                 Supplier<InputStream> streamSupplier = () -> Common.read(fileCopyDetails.getFile(), false);
                 Attributes attr = manifest.getEntries().computeIfAbsent(entryName, it -> new Attributes());
                 md.reset();
                 attr.putValue(Constants.ManifestAttributes.ENTRY_HASH,
                         Base64.getEncoder().encodeToString(Common.computeDigest(streamSupplier, md, buffer)));
             }
-            if (METADATA_FOLDER.equals(entryName)) return;
+            if (Constants.METADATA_FOLDER.equals(entryName)) return;
             if (fileCopyDetails.isDirectory()) {
                 ZipEntry zipEntry = zipEntryFactory.createDirectoryEntry(entryName, fileCopyDetails.getLastModified());
                 zoos.putNextEntry(zipEntry);
@@ -164,7 +158,7 @@ public class ExecutableJarTask extends AbstractArchiveTask {
         @Nonnull
         ZipEntry createZipEntry(String entryName, long lastModifiedTime) {
             ZipEntry zipEntry = new ZipEntry(entryName);
-            zipEntry.setTime(isPreserveFileTimestamps ? lastModifiedTime : ZIP_ENTRIES_DEFAULT_TIMESTAMP);
+            zipEntry.setTime(isPreserveFileTimestamps ? lastModifiedTime : Constants.ZIP_ENTRIES_DEFAULT_TIMESTAMP);
             return zipEntry;
         }
 
@@ -218,9 +212,9 @@ public class ExecutableJarTask extends AbstractArchiveTask {
                 Manifest manifest = new Manifest();
                 Attributes mainAttributes = manifest.getMainAttributes();
                 mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
-                mainAttributes.put(Attributes.Name.MAIN_CLASS, DEFAULT_LAUNCHER);
+                mainAttributes.put(Attributes.Name.MAIN_CLASS, Constants.DEFAULT_LAUNCHER);
                 mainAttributes.put(Attributes.Name.MULTI_RELEASE, "true");
-                mainAttributes.put(new Attributes.Name("Launcher-Agent-Class"), AGENT_LAUNCHER);
+                mainAttributes.put(new Attributes.Name("Launcher-Agent-Class"), Constants.AGENT_LAUNCHER);
                 mainAttributes.put(new Attributes.Name("Can-Redefine-Classes"), "true");
                 mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
                 mainAttributes.putValue(Constants.ManifestAttributes.MAIN_CLASS, mainClass.get());
@@ -253,13 +247,13 @@ public class ExecutableJarTask extends AbstractArchiveTask {
                 try (ZipOutputStream zipOutputStream = new ZipOutputStream(Common.write(destination, true));
                     ZipInputStream zipInputStream = new ZipInputStream(Common.read(temporaryJar, true))) {
                     zipOutputStream.setLevel(BEST_COMPRESSION);
-                    ZipEntry zipEntry = zipEntryFactory.createDirectoryEntry(METADATA_FOLDER);
+                    ZipEntry zipEntry = zipEntryFactory.createDirectoryEntry(Constants.METADATA_FOLDER);
                     zipOutputStream.putNextEntry(zipEntry);
                     zipEntry = zipEntryFactory.createZipEntry(JarFile.MANIFEST_NAME);
                     zipEntry.setMethod(ZipEntry.DEFLATED);
                     zipOutputStream.putNextEntry(zipEntry);
                     manifest.write(zipOutputStream);
-                    zipEntry = zipEntryFactory.createZipEntry(JAVA_AGENTS_FILE);
+                    zipEntry = zipEntryFactory.createZipEntry(Constants.JAVA_AGENTS_FILE);
                     zipEntry.setMethod(ZipEntry.DEFLATED);
                     zipOutputStream.putNextEntry(zipEntry);
                     javaAgents.store(zipOutputStream, null);

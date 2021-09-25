@@ -11,7 +11,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'executable-jar'
+rootProject.name = 'envelope'
 
 include 'common'
 include 'launcher'

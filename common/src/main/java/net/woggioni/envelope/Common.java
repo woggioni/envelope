@@ -1,4 +1,4 @@
-package net.woggioni.executable.jar;
+package net.woggioni.envelope;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;

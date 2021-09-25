@@ -1,4 +1,4 @@
-package net.woggioni.executable.jar;
+package net.woggioni.envelope;
 
 import java.io.InputStream;
 import java.lang.reflect.Method;

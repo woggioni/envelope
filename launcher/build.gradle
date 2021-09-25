@@ -4,7 +4,7 @@ plugins {
     id "net.woggioni.gradle.multi-release-jar"
 }
 
-ext.setProperty("jpms.module.name", "net.woggioni.executable.jar")
+ext.setProperty("jpms.module.name", "net.woggioni.envelope")
 
 configurations {
     embedded
@@ -30,7 +30,7 @@ tasks.withType(JavaCompile).configureEach {
 jar {
     manifest {
         attributes([
-           (Attributes.Name.SPECIFICATION_TITLE) : "executable-jar-launcher",
+           (Attributes.Name.SPECIFICATION_TITLE) : "envelope-launcher",
            (Attributes.Name.SEALED) : true
         ].collectEntries {
             [it.key.toString(), it.value.toString()]
@@ -57,6 +57,6 @@ tasks.register("tar", Tar) {
 tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
     doFirst {
         String path = project(":common").extensions.getByType(JavaPluginExtension).sourceSets.named("main").get().output.asPath
-        options.compilerArgs.addAll(["--patch-module", "net.woggioni.executable.jar=$path"])
+        options.compilerArgs.addAll(["--patch-module", "net.woggioni.envelope=$path"])
     }
 }

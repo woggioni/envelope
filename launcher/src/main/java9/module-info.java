@@ -1,4 +1,4 @@
-module net.woggioni.executable.jar {
+module net.woggioni.envelope {
     requires java.logging;
     requires static lombok;
     requires net.woggioni.xclassloader;

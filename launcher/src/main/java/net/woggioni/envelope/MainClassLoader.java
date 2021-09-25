@@ -1,4 +1,4 @@
-package net.woggioni.executable.jar;
+package net.woggioni.envelope;
 
 import java.nio.file.Path;
 import lombok.SneakyThrows;

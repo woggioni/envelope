@@ -1,4 +1,4 @@
-package net.woggioni.gradle.executable.jar;
+package net.woggioni.gradle.envelope;
 
 import java.io.InputStream;
 import java.net.URI;

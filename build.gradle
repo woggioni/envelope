@@ -32,7 +32,7 @@ allprojects {
     }
 }
 
-version = getProperty("version.executableJar")
+version = getProperty("version.envelope")
 
 configurations {
     embedded
@@ -72,9 +72,9 @@ jar {
 
 gradlePlugin {
     plugins {
-        create("ExecutableJarPlugin") {
-            id = "net.woggioni.gradle.executable-jar"
-            implementationClass = "net.woggioni.gradle.executable.jar.ExecutableJarPlugin"
+        create("EnvelopePlugin") {
+            id = "net.woggioni.gradle.envelope"
+            implementationClass = "net.woggioni.gradle.envelope.EnvelopePlugin"
         }
     }
 }

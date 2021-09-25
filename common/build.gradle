@@ -5,6 +5,6 @@ java {
 
 jar {
     manifest {
-        attributes "Automatic-Module-Name" : "net.woggioni.executable.jar"
+        attributes "Automatic-Module-Name" : "net.woggioni.envelope"
     }
 }
