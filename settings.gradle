@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        maven {
+            url = 'https://woggioni.net/mvn/'
+        }
+    }
+
+    plugins {
+        id 'net.woggioni.gradle.lombok' version "0.1"
+        id "net.woggioni.gradle.multi-release-jar" version "0.1"
+    }
+}
+
+rootProject.name = 'executable-jar'
+
+include 'common'
+include 'launcher'

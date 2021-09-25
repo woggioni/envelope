@@ -1,0 +1,62 @@
+import java.util.jar.Attributes
+
+plugins {
+    id "net.woggioni.gradle.multi-release-jar"
+}
+
+ext.setProperty("jpms.module.name", "net.woggioni.executable.jar")
+
+configurations {
+    embedded
+    compileOnly.extendsFrom(embedded)
+}
+
+dependencies {
+    embedded project(path: ":common", configuration: 'archives')
+    embedded group: "net.woggioni", name: "xclassloader", version: getProperty("version.xclassloader")
+}
+
+java {
+    modularity.inferModulePath = true
+}
+
+tasks.withType(JavaCompile).configureEach {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(16)
+    }
+    options.forkOptions.jvmArgs << "--illegal-access=permit"
+}
+
+jar {
+    manifest {
+        attributes([
+           (Attributes.Name.SPECIFICATION_TITLE) : "executable-jar-launcher",
+           (Attributes.Name.SEALED) : true
+        ].collectEntries {
+            [it.key.toString(), it.value.toString()]
+        })
+    }
+}
+
+tasks.register("tar", Tar) {
+    archiveFileName = "${project.name}.tar"
+    from(project.tasks.named(JavaPlugin.JAR_TASK_NAME)
+            .flatMap(Jar.&getArchiveFile)
+            .map(RegularFile.&getAsFile)
+            .map(project.&zipTree))
+    from(configurations.named('embedded').map {
+        it.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }) {
+        exclude("**/module-info.class")
+        exclude("META-INF/MANIFEST.MF")
+    }
+}
+
+tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
+    doFirst {
+        String path = project(":common").extensions.getByType(JavaPluginExtension).sourceSets.named("main").get().output.asPath
+        options.compilerArgs.addAll(["--patch-module", "net.woggioni.executable.jar=$path"])
+    }
+}

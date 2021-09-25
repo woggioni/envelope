@@ -1,0 +1,100 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'net.woggioni.gradle.lombok' apply false
+    id 'maven-publish'
+}
+
+allprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'net.woggioni.gradle.lombok'
+
+    repositories {
+        maven {
+            url = woggioniMavenRepositoryUrl
+        }
+        mavenCentral()
+    }
+
+    group = "net.woggioni.gradle"
+
+    lombok {
+        version = getProperty('version.lombok')
+    }
+
+    dependencies {
+        add("testImplementation", create(group: "org.junit.jupiter", name:"junit-jupiter-api", version: project["version.junitJupiter"]))
+        add("testRuntimeOnly", create(group: "org.junit.jupiter", name: "junit-jupiter-engine", version: project["version.junitJupiter"]))
+        add("testImplementation", gradleTestKit())
+    }
+
+    tasks.named("test", Test) {
+        useJUnitPlatform()
+    }
+}
+
+version = getProperty("version.executableJar")
+
+configurations {
+    embedded
+    compileOnly.extendsFrom(embedded)
+}
+
+dependencies {
+    embedded project(path: "common", configuration: "archives")
+}
+
+Provider<Copy> copyLauncher = tasks.register("copyLauncher", Copy) {
+    from(project("launcher").tasks.named("tar").map {it.outputs })
+    into(new File(project.buildDir, "resources/main/META-INF"))
+}
+
+tasks.named("processResources") {
+    inputs.files(copyLauncher)
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+jar {
+    manifest {
+        attributes "version" : archiveVersion.get()
+    }
+    from {
+        configurations.named('embedded').map {
+            it.collect {
+                it.isDirectory() ? it : zipTree(it)
+            }
+        }
+    }
+}
+
+gradlePlugin {
+    plugins {
+        create("ExecutableJarPlugin") {
+            id = "net.woggioni.gradle.executable-jar"
+            implementationClass = "net.woggioni.gradle.executable.jar.ExecutableJarPlugin"
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            url = woggioniMavenRepositoryUrl
+        }
+    }
+    publications {
+        maven(MavenPublication) {
+            from(components["java"])
+        }
+    }
+}
+
+wrapper {
+    gradleVersion = "7.2"
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+
