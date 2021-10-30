@@ -14,7 +14,7 @@ final class LauncherResource implements ReadableResource {
     private final URL url;
 
     private LauncherResource() {
-        url = getClass().getResource(String.format("/META-INF/%s", getDisplayName()));
+        url = getClass().getResource(String.format("/LIB-INF/%s", getDisplayName()));
     }
 
     @Override

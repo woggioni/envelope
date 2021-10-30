@@ -35,21 +35,21 @@ allprojects {
 version = getProperty("version.envelope")
 
 configurations {
-    embedded
+    embedded {
+        visible = false
+        canBeConsumed = false
+    }
     compileOnly.extendsFrom(embedded)
+    tar {
+        visible = false
+        canBeConsumed = false
+        transitive = false
+    }
 }
 
 dependencies {
+    tar project(path: "launcher", configuration: 'tar')
     embedded project(path: "common", configuration: "archives")
-}
-
-Provider<Copy> copyLauncher = tasks.register("copyLauncher", Copy) {
-    from(project("launcher").tasks.named("tar").map {it.outputs })
-    into(new File(project.buildDir, "resources/main/META-INF"))
-}
-
-tasks.named("processResources") {
-    inputs.files(copyLauncher)
 }
 
 java {
@@ -68,6 +68,9 @@ jar {
             }
         }
     }
+    into('LIB-INF') {
+        from(configurations.named('tar'))
+    }
 }
 
 gradlePlugin {
@@ -82,7 +85,7 @@ gradlePlugin {
 publishing {
     repositories {
         maven {
-            url = woggioniMavenRepositoryUrl
+            url = publishMavenRepositoryUrl
         }
     }
     publications {

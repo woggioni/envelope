@@ -7,8 +7,16 @@ plugins {
 ext.setProperty("jpms.module.name", "net.woggioni.envelope")
 
 configurations {
-    embedded
+    embedded {
+        visible = false
+        canBeConsumed = false
+    }
     compileOnly.extendsFrom(embedded)
+    tar {
+        visible = true
+        canBeConsumed = true
+        transitive = false
+    }
 }
 
 dependencies {
@@ -38,7 +46,7 @@ jar {
     }
 }
 
-tasks.register("tar", Tar) {
+Provider<Tar> tarTaskProvider = tasks.register("tar", Tar) {
     archiveFileName = "${project.name}.tar"
     from(project.tasks.named(JavaPlugin.JAR_TASK_NAME)
             .flatMap(Jar.&getArchiveFile)
@@ -59,4 +67,8 @@ tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
         String path = project(":common").extensions.getByType(JavaPluginExtension).sourceSets.named("main").get().output.asPath
         options.compilerArgs.addAll(["--patch-module", "net.woggioni.envelope=$path"])
     }
+}
+
+artifacts {
+    tar tarTaskProvider
 }
