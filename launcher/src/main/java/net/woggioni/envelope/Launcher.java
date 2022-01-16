@@ -1,5 +1,8 @@
 package net.woggioni.envelope;
 
+import lombok.SneakyThrows;
+import lombok.extern.java.Log;
+
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -18,11 +21,8 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import lombok.SneakyThrows;
-import lombok.extern.java.Log;
 
 
 @Log
