@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -41,7 +42,20 @@ public class Launcher {
     @SneakyThrows
     public static void main(String[] args) {
         URI currentJar = findCurrentJar();
-        URL manifestResource = Launcher.class.getResource("/" + JarFile.MANIFEST_NAME);
+        String currentJarPath = currentJar.getPath();
+        URL manifestResource = null;
+        Enumeration<URL> enumeration = Launcher.class.getClassLoader().getResources(JarFile.MANIFEST_NAME);
+        while(enumeration.hasMoreElements()) {
+            URL candidate = enumeration.nextElement();
+            URL subUrl = new URL(candidate.getFile());
+            String candidatePath = subUrl.getPath();
+            int i = candidatePath.indexOf("!/");
+            candidatePath = candidatePath.substring(0, i);
+            if(Objects.equals(currentJarPath, candidatePath)) {
+                manifestResource = candidate;
+                break;
+            }
+        }
         if(Objects.isNull(manifestResource)) {
             throw new RuntimeException("Launcher manifest not found");
         }
