@@ -96,7 +96,7 @@ publishing {
 }
 
 wrapper {
-    gradleVersion = "7.2"
+    gradleVersion = getProperty('version.gradle')
     distributionType = Wrapper.DistributionType.ALL
 }
 
