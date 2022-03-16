@@ -1,7 +1,6 @@
 package net.woggioni.envelope;
 
 import lombok.SneakyThrows;
-import lombok.extern.java.Log;
 
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -16,7 +15,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.function.Function;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -26,7 +27,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 
-@Log
 public class Launcher {
 
     @SneakyThrows
@@ -41,6 +41,19 @@ public class Launcher {
 
     @SneakyThrows
     public static void main(String[] args) {
+        Enumeration<URL> it = Launcher.class.getClassLoader().getResources(Constants.SYSTEM_PROPERTIES_FILE);
+        while (it.hasMoreElements()) {
+            URL url = it.nextElement();
+            Properties properties = new Properties();
+            try (InputStream is = url.openStream()) {
+                properties.load(is);
+            }
+            for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+                String key = (String) entry.getKey();
+                String value = (String) entry.getValue();
+                if(System.getProperty(key) == null) System.setProperty(key, value);
+            }
+        }
         URI currentJar = findCurrentJar();
         String currentJarPath = currentJar.getPath();
         URL manifestResource = null;

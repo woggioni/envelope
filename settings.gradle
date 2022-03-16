@@ -1,6 +1,12 @@
 pluginManagement {
     repositories {
         maven {
+            content {
+                includeModule 'net.woggioni.gradle', 'lombok'
+                includeModule 'net.woggioni.gradle.lombok', 'net.woggioni.gradle.lombok.gradle.plugin'
+                includeModule 'net.woggioni.gradle', 'multi-release-jar'
+                includeModule 'net.woggioni.gradle.multi-release-jar', 'net.woggioni.gradle.multi-release-jar.gradle.plugin'
+            }
             url = 'https://woggioni.net/mvn/'
         }
     }

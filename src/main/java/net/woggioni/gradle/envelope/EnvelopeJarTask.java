@@ -1,23 +1,5 @@
 package net.woggioni.gradle.envelope;
 
-import java.io.File;
-import java.io.InputStream;
-import java.security.MessageDigest;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.jar.Attributes;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
-import javax.annotation.Nonnull;
-import javax.inject.Inject;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -38,6 +20,25 @@ import org.gradle.api.tasks.WorkResult;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.util.GradleVersion;
 
+import javax.annotation.Nonnull;
+import javax.inject.Inject;
+import java.io.File;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.Supplier;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import static java.util.zip.Deflater.BEST_COMPRESSION;
 import static java.util.zip.Deflater.NO_COMPRESSION;
@@ -62,6 +63,9 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
 
     private final Properties javaAgents = new Properties();
 
+    @Getter(onMethod_ = {@Input})
+    private final Map<String, String> systemProperties = new TreeMap<>();
+
     @Input
     public Set<Map.Entry<Object, Object>> getJavaAgents() {
         return Collections.unmodifiableSet(javaAgents.entrySet());
@@ -69,6 +73,10 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
 
     public void javaAgent(String className, String args) {
         javaAgents.put(className, args);
+    }
+
+    public void systemProperty(String key, String value) {
+        systemProperties.put(key, value);
     }
 
     public void includeLibraries(Object... files) {
@@ -86,7 +94,6 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
         getArchiveExtension().convention("jar");
         getArchiveVersion().convention(getProject().getVersion().toString());
         getArchiveAppendix().convention("envelope");
-        exclude("**/module-info.class");
 
         mainClass = objects.property(String.class);
         mainModule = objects.property(String.class);
@@ -257,6 +264,14 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
                     zipEntry.setMethod(ZipEntry.DEFLATED);
                     zipOutputStream.putNextEntry(zipEntry);
                     javaAgents.store(zipOutputStream, null);
+                    zipEntry = zipEntryFactory.createZipEntry(Constants.SYSTEM_PROPERTIES_FILE);
+                    zipEntry.setMethod(ZipEntry.DEFLATED);
+                    zipOutputStream.putNextEntry(zipEntry);
+                    Properties props = new Properties();
+                    for(Map.Entry<String, String> entry : systemProperties.entrySet()) {
+                        props.setProperty(entry.getKey(), entry.getValue());
+                    }
+                    props.store(zipOutputStream, null);
 
                     while (true) {
                         zipEntry = zipInputStream.getNextEntry();
