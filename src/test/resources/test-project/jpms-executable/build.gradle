@@ -1,0 +1,9 @@
+plugins {
+    id 'java-library'
+    id 'net.woggioni.gradle.envelope'
+}
+
+envelopeJar {
+    mainClass = 'envelope.test.jpms.Main'
+    mainModule = 'envelope.test.jpms'
+}

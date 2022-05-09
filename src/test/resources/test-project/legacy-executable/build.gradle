@@ -1,0 +1,8 @@
+plugins {
+    id 'java-library'
+    id 'net.woggioni.gradle.envelope'
+}
+
+envelopeJar {
+    mainClass = 'envelope.test.legacy.Main'
+}

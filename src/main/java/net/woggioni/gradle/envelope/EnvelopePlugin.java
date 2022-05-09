@@ -30,7 +30,7 @@ public class EnvelopePlugin implements Plugin<Project> {
             t.getInputs().files(envelopeJarTaskProvider);
             t.setGroup("envelope");
             t.setDescription("Run the application in the envelope jar");
-            t.classpath(envelopeJarTaskProvider);   
+            t.classpath(envelopeJarTaskProvider);
         });
     }
 }

@@ -1,3 +1,5 @@
+import java.nio.file.Files
+
 plugins {
     id 'java-gradle-plugin'
     id 'net.woggioni.gradle.lombok' apply false
@@ -57,10 +59,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-jar {
-    manifest {
-        attributes "version" : archiveVersion.get()
-    }
+tasks.named('processResources', ProcessResources) {
     from {
         configurations.named('embedded').map {
             it.collect {
@@ -70,6 +69,12 @@ jar {
     }
     into('LIB-INF') {
         from(configurations.named('tar'))
+    }
+}
+
+jar {
+    manifest {
+        attributes "version" : archiveVersion.get()
     }
 }
 
@@ -100,4 +105,26 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 
+tasks.named('processTestResources') { ProcessResources it ->
+    doLast {
+        Files.newBufferedWriter(it.destinationDir.toPath().resolve('test-resources.txt')).withCloseable { writer ->
+            sourceSets.test.resources.sourceDirectories.each { srcDir ->
+                java.nio.file.Path srcPath = srcDir.toPath()
+                Files.walk(srcPath).forEach {
+                    if(Files.isRegularFile(it) && srcPath != it) {
+                        writer.write(srcPath.relativize(it).toString() + '\n')
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.named('test', Test) {
+    systemProperty('test.gradle.user.home', temporaryDir)
+}
+
+tasks.named("pluginUnderTestMetadata", PluginUnderTestMetadata) {
+    pluginClasspath.from(configurations.compileClasspath)
+}
 
