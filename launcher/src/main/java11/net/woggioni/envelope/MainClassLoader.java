@@ -21,7 +21,8 @@ class MainClassLoader {
     @SneakyThrows
     static Class<?> loadMainClass(Iterable<Path> roots, String mainModuleName, String mainClassName) {
         if (mainModuleName == null) {
-            ClassLoader pathClassLoader = new net.woggioni.xclassloader.PathClassLoader(roots);
+            ClassLoader pathClassLoader = new net.woggioni.xclassloader.PathClassLoader(roots, ClassLoader.getSystemClassLoader().getParent());
+            Thread.currentThread().setContextClassLoader(pathClassLoader);
             return pathClassLoader.loadClass(mainClassName);
         } else {
             ModuleLayer bootLayer = ModuleLayer.boot();
