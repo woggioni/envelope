@@ -1,6 +1,8 @@
 package net.woggioni.envelope;
 
 import lombok.SneakyThrows;
+import net.woggioni.xclassloader.PathURLStreamHandler;
+import net.woggioni.xclassloader.URLManager;
 
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -41,6 +43,9 @@ public class Launcher {
 
     @SneakyThrows
     public static void main(String[] args) {
+        URLManager urlManager = URLManager.getInstance();
+        urlManager.registerProtocol(PathURLStreamHandler.SCHEME, PathURLStreamHandler.INSTANCE);
+        URL.setURLStreamHandlerFactory(urlManager);
         Enumeration<URL> it = Launcher.class.getClassLoader().getResources(Constants.SYSTEM_PROPERTIES_FILE);
         while (it.hasMoreElements()) {
             URL url = it.nextElement();
