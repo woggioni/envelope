@@ -23,6 +23,10 @@ allprojects {
         version = getProperty('version.lombok')
     }
 
+    configurations.all {
+        resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+    }
+
     dependencies {
         add("testImplementation", create(group: "org.junit.jupiter", name:"junit-jupiter-api", version: project["version.junitJupiter"]))
         add("testRuntimeOnly", create(group: "org.junit.jupiter", name: "junit-jupiter-engine", version: project["version.junitJupiter"]))
