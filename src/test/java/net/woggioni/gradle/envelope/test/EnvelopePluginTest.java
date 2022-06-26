@@ -28,6 +28,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.junit.jupiter.api.Assertions;
+
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 public class EnvelopePluginTest {
@@ -44,15 +45,15 @@ public class EnvelopePluginTest {
         return getResource(resourceName, cls, null);
     }
 
-    private static URL getResource(String resourceName, Class<?> cls,  ClassLoader cl) {
+    private static URL getResource(String resourceName, Class<?> cls, ClassLoader cl) {
         URL result = null;
-        if(cl != null) {
+        if (cl != null) {
             result = cl.getResource(resourceName);
         }
-        if(result == null && cls != null) {
+        if (result == null && cls != null) {
             result = cls.getClassLoader().getResource(resourceName);
         }
-        if(result == null) {
+        if (result == null) {
             result = EnvelopePluginTest.class.getClassLoader().getResource(resourceName);
         }
         return result;
@@ -90,10 +91,11 @@ public class EnvelopePluginTest {
         GradleRunner runner = GradleRunner.create()
                 .withDebug(true)
                 .withProjectDir(rootProjectDir.toFile())
-                .withArguments(Arrays.concat(new String[] {"-s", "--info", "-g", testGradleHomeDir.toString()}, taskName))
+                .withArguments(Arrays.concat(new String[]{"-s", "--info", "-g", testGradleHomeDir.toString()}, taskName))
                 .withPluginClasspath();
         System.out.println(runner.build().getOutput());
     }
+
     private Path testDir;
     private static final Path testGradleHomeDir = Paths.get(System.getProperty("test.gradle.user.home"));
 
@@ -102,14 +104,14 @@ public class EnvelopePluginTest {
     public void setup(@TempDir Path testDir) {
         this.testDir = testDir;
         String resourceFile = "test-resources.txt";
-        try(BufferedReader reader =
-            Optional.ofNullable(getResource(resourceFile).openStream())
-                .map(InputStreamReader::new)
-                .map(BufferedReader::new)
-                .orElseThrow(() -> new FileNotFoundException(resourceFile))) {
-            while(true) {
+        try (BufferedReader reader =
+                     Optional.ofNullable(getResource(resourceFile).openStream())
+                             .map(InputStreamReader::new)
+                             .map(BufferedReader::new)
+                             .orElseThrow(() -> new FileNotFoundException(resourceFile))) {
+            while (true) {
                 String line = reader.readLine();
-                if(line == null) break;
+                if (line == null) break;
                 Path destination = testDir.resolve(line);
                 Files.createDirectories(destination.getParent());
                 Files.copy(getResource(line).openStream(), destination);
@@ -123,7 +125,7 @@ public class EnvelopePluginTest {
     }
 
     @Test
-        void jpmsTest() {
+    void jpmsTest() {
         invokeGradle(testDir.resolve("test-project"), ":jpms-executable:envelopeRun");
     }
 

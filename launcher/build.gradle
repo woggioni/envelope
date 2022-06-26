@@ -1,10 +1,11 @@
 import java.util.jar.Attributes
-
 plugins {
-    id "net.woggioni.gradle.multi-release-jar"
+    id 'net.woggioni.gradle.multi-release-jar'
 }
 
-ext.setProperty("jpms.module.name", "net.woggioni.envelope")
+ext {
+    setProperty('jpms.module.name', 'net.woggioni.envelope')
+}
 
 configurations {
     embedded {
@@ -28,18 +29,11 @@ java {
     modularity.inferModulePath = true
 }
 
-tasks.withType(JavaCompile).configureEach {
-    javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(16)
-    }
-    options.forkOptions.jvmArgs << "--illegal-access=permit"
-}
-
 jar {
     manifest {
         attributes([
-           (Attributes.Name.SPECIFICATION_TITLE) : "envelope-launcher",
-           (Attributes.Name.SEALED) : true
+            (Attributes.Name.SPECIFICATION_TITLE) : "envelope-launcher",
+            (Attributes.Name.SEALED) : true
         ].collectEntries {
             [it.key.toString(), it.value.toString()]
         })
@@ -59,13 +53,6 @@ Provider<Tar> tarTaskProvider = tasks.register("tar", Tar) {
     }) {
         exclude("**/module-info.class")
         exclude("META-INF/MANIFEST.MF")
-    }
-}
-
-tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
-    doFirst {
-        String path = project(":common").extensions.getByType(JavaPluginExtension).sourceSets.named("main").get().output.asPath
-        options.compilerArgs.addAll(["--patch-module", "net.woggioni.envelope=$path"])
     }
 }
 

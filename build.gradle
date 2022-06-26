@@ -13,11 +13,20 @@ allprojects {
     repositories {
         maven {
             url = woggioniMavenRepositoryUrl
+            content {
+                includeModule 'net.woggioni', 'xclassloader'
+            }
         }
         mavenCentral()
     }
 
     group = "net.woggioni.gradle"
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
 
     lombok {
         version = getProperty('version.lombok')
@@ -31,6 +40,10 @@ allprojects {
         add("testImplementation", create(group: "org.junit.jupiter", name:"junit-jupiter-api", version: project["version.junitJupiter"]))
         add("testRuntimeOnly", create(group: "org.junit.jupiter", name: "junit-jupiter-engine", version: project["version.junitJupiter"]))
         add("testImplementation", gradleTestKit())
+    }
+
+    tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
+        options.release = 8
     }
 
     tasks.named("test", Test) {
@@ -56,11 +69,6 @@ configurations {
 dependencies {
     tar project(path: "launcher", configuration: 'tar')
     embedded project(path: "common", configuration: "archives")
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks.named('processResources', ProcessResources) {

@@ -4,6 +4,8 @@ pluginManagement {
             content {
                 includeModule 'net.woggioni.gradle', 'lombok'
                 includeModule 'net.woggioni.gradle.lombok', 'net.woggioni.gradle.lombok.gradle.plugin'
+                includeModule 'net.woggioni.gradle', 'multi-version-jar'
+                includeModule 'net.woggioni.gradle.multi-version-jar', 'net.woggioni.gradle.multi-version-jar.gradle.plugin'
                 includeModule 'net.woggioni.gradle', 'multi-release-jar'
                 includeModule 'net.woggioni.gradle.multi-release-jar', 'net.woggioni.gradle.multi-release-jar.gradle.plugin'
             }
@@ -12,8 +14,9 @@ pluginManagement {
     }
 
     plugins {
-        id 'net.woggioni.gradle.lombok' version "0.1"
-        id "net.woggioni.gradle.multi-release-jar" version "0.1"
+        id 'net.woggioni.gradle.lombok' version getProperty('lys-gradle-plugins.version')
+        id 'net.woggioni.gradle.multi-version-jar' version getProperty('lys-gradle-plugins.version')
+        id 'net.woggioni.gradle.multi-release-jar' version getProperty('lys-gradle-plugins.version')
     }
 }
 

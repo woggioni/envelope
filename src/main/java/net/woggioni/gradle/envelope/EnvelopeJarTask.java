@@ -220,7 +220,7 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
                 Attributes mainAttributes = manifest.getMainAttributes();
                 mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
                 mainAttributes.put(Attributes.Name.MAIN_CLASS, Constants.DEFAULT_LAUNCHER);
-                mainAttributes.put(Attributes.Name.MULTI_RELEASE, "true");
+                mainAttributes.putValue("Multi-Release", "true");
                 mainAttributes.put(new Attributes.Name("Launcher-Agent-Class"), Constants.AGENT_LAUNCHER);
                 mainAttributes.put(new Attributes.Name("Can-Redefine-Classes"), "true");
                 mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
