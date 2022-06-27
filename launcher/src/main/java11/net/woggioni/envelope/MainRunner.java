@@ -12,9 +12,10 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Enumeration;
 import java.util.function.Consumer;
+import java.net.URI;
 import java.net.URL;
+import java.net.URLStreamHandler;
 import java.net.URLClassLoader;
-
 
 import lombok.SneakyThrows;
 
@@ -24,6 +25,10 @@ import net.woggioni.xclassloader.jar.JarFile;
 import java.util.jar.JarEntry;
 
 class MainRunner {
+    @SneakyThrows
+    private static final URL uri2url(URI uri, URLStreamHandler streamHandler) {
+        return new URL(null, uri.toString(), streamHandler);
+    }
 
     @SneakyThrows
     static void run(JarFile currentJarFile,
@@ -57,30 +62,33 @@ class MainRunner {
             }
             ModuleLayer bootLayer = ModuleLayer.boot();
             Configuration bootConfiguration = bootLayer.configuration();
-            Configuration cfg = bootConfiguration.resolve(new JarFileModuleFinder(jarList), ModuleFinder.of(), Collections.singletonList(mainModuleName));
+            JarFileModuleFinder jarFileModuleFinder = new JarFileModuleFinder(jarList);
+            Configuration cfg = bootConfiguration.resolve(jarFileModuleFinder, ModuleFinder.of(), Collections.singletonList(mainModuleName));
             Map<String, ClassLoader> packageMap = new TreeMap<>();
             ModuleLayer.Controller controller =
-                    ModuleLayer.defineModules(cfg, Collections.singletonList(ModuleLayer.boot()), moduleName -> {
-                        ModuleReference modRef = cfg.findModule(moduleName)
-                                .map(ResolvedModule::reference)
-                                .orElseThrow();
-                        ClassLoader cl =  new ModuleClassLoader(
-                                Collections.unmodifiableMap(packageMap),
-                                modRef
-                        );
-                        for(String packageName : modRef.descriptor().packages()) {
-                            packageMap.put(packageName, cl);
-                        }
-                        return cl;
-                    });
+                ModuleLayer.defineModules(cfg, Collections.singletonList(ModuleLayer.boot()), moduleName -> {
+                    ModuleReference modRef = cfg.findModule(moduleName)
+                        .map(ResolvedModule::reference)
+                        .orElseThrow();
+                    URLStreamHandler streamHandler = jarFileModuleFinder.getStreamHandlerForModule(moduleName);
+                    ClassLoader cl =  new ModuleClassLoader(
+                        Collections.unmodifiableMap(packageMap),
+                        modRef,
+                        (URI uri) -> uri2url(uri, streamHandler)
+                    );
+                    for(String packageName : modRef.descriptor().packages()) {
+                        packageMap.put(packageName, cl);
+                    }
+                    return cl;
+                });
             ModuleLayer layer = controller.layer();
             Module mainModule = layer.findModule(mainModuleName).orElseThrow(
                     () -> new IllegalStateException(String.format("Main module '%s' not found", mainModuleName)));
             runner.accept(Optional.ofNullable(mainClassName)
-                    .or(() -> mainModule.getDescriptor().mainClass())
-                    .map(className -> Class.forName(mainModule, className))
-                    .orElseThrow(() -> new IllegalStateException(
-                        String.format("Unable to determine main class name for module '%s'", mainModule.getName()))));
+                .or(() -> mainModule.getDescriptor().mainClass())
+                .map(className -> Class.forName(mainModule, className))
+                .orElseThrow(() -> new IllegalStateException(
+                    String.format("Unable to determine main class name for module '%s'", mainModule.getName()))));
         }
     }
 }

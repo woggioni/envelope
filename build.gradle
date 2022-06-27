@@ -105,11 +105,6 @@ publishing {
             url = publishMavenRepositoryUrl
         }
     }
-    publications {
-        maven(MavenPublication) {
-            from(components["java"])
-        }
-    }
 }
 
 wrapper {
