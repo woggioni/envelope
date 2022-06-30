@@ -24,9 +24,12 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -119,11 +122,19 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
         private final ZipEntryFactory zipEntryFactory;
         private final byte[] buffer;
 
+        private final List<String> libraries;
+
+        private static final String LIBRARY_PREFIX = Constants.LIBRARIES_FOLDER + '/';
+
         @Override
         @SneakyThrows
         public void processFile(FileCopyDetailsInternal fileCopyDetails) {
             String entryName = fileCopyDetails.getRelativePath().toString();
-            if (!fileCopyDetails.isDirectory() && entryName.startsWith(Constants.LIBRARIES_FOLDER)) {
+            int start = LIBRARY_PREFIX.length() + 1;
+            if (!fileCopyDetails.isDirectory() &&
+                    entryName.startsWith(LIBRARY_PREFIX) &&
+                    entryName.indexOf('/', start) < 0) {
+                libraries.add(entryName.substring(LIBRARY_PREFIX.length()));
                 Supplier<InputStream> streamSupplier = () -> Common.read(fileCopyDetails.getFile(), false);
                 Attributes attr = manifest.getEntries().computeIfAbsent(entryName, it -> new Attributes());
                 md.reset();
@@ -231,6 +242,7 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
 
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
                 byte[] buffer = new byte[Constants.BUFFER_SIZE];
+                List<String> libraries = new ArrayList<>();
 
                 /**
                  * The manifest has to be the first zip entry in a jar archive, as an example,
@@ -247,7 +259,8 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
                 File temporaryJar = new File(getTemporaryDir(), "premature.zip");
                 try (ZipOutputStream zipOutputStream = new ZipOutputStream(Common.write(temporaryJar, true))) {
                     zipOutputStream.setLevel(NO_COMPRESSION);
-                    StreamAction streamAction = new StreamAction(zipOutputStream, manifest, md, zipEntryFactory, buffer);
+                    StreamAction streamAction = new StreamAction(
+                            zipOutputStream, manifest, md, zipEntryFactory, buffer, libraries);
                     copyActionProcessingStream.process(streamAction);
                 }
 
@@ -272,6 +285,15 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
                         props.setProperty(entry.getKey(), entry.getValue());
                     }
                     props.store(zipOutputStream, null);
+                    zipEntry = zipEntryFactory.createZipEntry(Constants.LIBRARIES_TOC);
+                    zipEntry.setMethod(ZipEntry.DEFLATED);
+                    zipOutputStream.putNextEntry(zipEntry);
+                    int i = 0;
+                    while(i < libraries.size()) {
+                        if(i > 0) zipOutputStream.write('/');
+                        zipOutputStream.write(libraries.get(i).getBytes(StandardCharsets.UTF_8));
+                        ++i;
+                    }
 
                     while (true) {
                         zipEntry = zipInputStream.getNextEntry();

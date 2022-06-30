@@ -9,9 +9,6 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.bundling.Jar;
-import org.gradle.process.CommandLineArgumentProvider;
-
-import java.util.Arrays;
 
 public class EnvelopePlugin implements Plugin<Project> {
     @Override

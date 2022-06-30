@@ -15,6 +15,8 @@ public class Constants {
     public static final String JAVA_AGENTS_FILE = METADATA_FOLDER + "/javaAgents.properties";
     public static final String SYSTEM_PROPERTIES_FILE = METADATA_FOLDER + "/system.properties";
 
+    public static final String LIBRARIES_TOC = METADATA_FOLDER + "/libraries.txt";
+
     public static class ManifestAttributes {
         public static final String MAIN_MODULE = "Executable-Jar-Main-Module";
         public static final String MAIN_CLASS = "Executable-Jar-Main-Class";

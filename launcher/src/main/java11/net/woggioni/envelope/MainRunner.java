@@ -19,9 +19,9 @@ import java.net.URLClassLoader;
 
 import lombok.SneakyThrows;
 
-import net.woggioni.xclassloader.ModuleClassLoader;
-import net.woggioni.xclassloader.JarFileModuleFinder;
-import net.woggioni.xclassloader.jar.JarFile;
+import net.woggioni.envelope.loader.ModuleClassLoader;
+import net.woggioni.envelope.loader.JarFileModuleFinder;
+import net.woggioni.envelope.loader.JarFile;
 import java.util.jar.JarEntry;
 
 class MainRunner {
@@ -34,35 +34,18 @@ class MainRunner {
     static void run(JarFile currentJarFile,
                     String mainModuleName,
                     String mainClassName,
-                    String librariesFolder,
+                    List<JarFile> classpath,
                     Consumer<Class<?>> runner) {
         if(mainModuleName == null) {
-            List<URL> jarList = new ArrayList<>();
-            Enumeration<JarEntry> entries = currentJarFile.entries();
-            while(entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                String name = entry.getName();
-                if(!entry.isDirectory() && name.startsWith(librariesFolder) && name.endsWith(".jar")) {
-                    jarList.add(currentJarFile.getNestedJarFile(entry).getUrl());
-                }
-            }
-            try (URLClassLoader cl = new URLClassLoader(jarList.toArray(new URL[0]), ClassLoader.getSystemClassLoader().getParent())) {
+            URL[] urls = classpath.stream().map(Launcher::getURL).toArray(URL[]::new);
+            try (URLClassLoader cl = new URLClassLoader(urls, ClassLoader.getSystemClassLoader().getParent())) {
                 Thread.currentThread().setContextClassLoader(cl);
                 runner.accept(cl.loadClass(mainClassName));
             }
         } else {
-            List<JarFile> jarList = new ArrayList<>();
-            Enumeration<JarEntry> entries = currentJarFile.entries();
-            while(entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                String name = entry.getName();
-                if(!entry.isDirectory() && name.startsWith("LIB-INF") && name.endsWith(".jar")) {
-                    jarList.add(currentJarFile.getNestedJarFile(entry));
-                }
-            }
             ModuleLayer bootLayer = ModuleLayer.boot();
             Configuration bootConfiguration = bootLayer.configuration();
-            JarFileModuleFinder jarFileModuleFinder = new JarFileModuleFinder(jarList);
+            JarFileModuleFinder jarFileModuleFinder = new JarFileModuleFinder(classpath);
             Configuration cfg = bootConfiguration.resolve(jarFileModuleFinder, ModuleFinder.of(), Collections.singletonList(mainModuleName));
             Map<String, ClassLoader> packageMap = new TreeMap<>();
             ModuleLayer.Controller controller =

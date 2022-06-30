@@ -11,12 +11,6 @@ allprojects {
     apply plugin: 'net.woggioni.gradle.lombok'
 
     repositories {
-        maven {
-            url = woggioniMavenRepositoryUrl
-            content {
-                includeModule 'net.woggioni', 'xclassloader'
-            }
-        }
         mavenCentral()
     }
 

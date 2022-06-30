@@ -22,7 +22,7 @@ configurations {
 
 dependencies {
     embedded project(path: ":common", configuration: 'archives')
-    embedded group: "net.woggioni", name: "xclassloader", version: getProperty("version.xclassloader")
+    embedded project(path: ":loader", configuration: 'archives')
 }
 
 java {

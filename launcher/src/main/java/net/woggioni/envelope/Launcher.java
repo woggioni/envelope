@@ -1,25 +1,35 @@
 package net.woggioni.envelope;
 
 import lombok.SneakyThrows;
-import net.woggioni.xclassloader.jar.JarFile;
+import net.woggioni.envelope.loader.JarFile;
 
 import java.io.File;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
 import java.util.jar.Manifest;
 
 import static java.util.jar.JarFile.MANIFEST_NAME;
 
 public class Launcher {
+
+    @SneakyThrows
+    static URL getURL(JarFile jarFile) {
+        return jarFile.getUrl();
+    }
 
     @SneakyThrows
     private static JarFile findCurrentJar() {
@@ -86,7 +96,25 @@ public class Launcher {
 
         String mainClassName = mainAttributes.getValue(Constants.ManifestAttributes.MAIN_CLASS);
         String mainModuleName = mainAttributes.getValue(Constants.ManifestAttributes.MAIN_MODULE);
-
+        StringBuilder sb = new StringBuilder();
+        List<JarFile> classpath = new ArrayList<>();
+        URL libraryTocResource = Launcher.class.getClassLoader().getResource(Constants.LIBRARIES_TOC);
+        if(libraryTocResource == null) throw new RuntimeException(
+                Constants.LIBRARIES_TOC + " not found");
+        try(Reader reader = new InputStreamReader(libraryTocResource.openStream())) {
+            while(true) {
+                int c = reader.read();
+                boolean entryEnd = c == '/' || c < 0;
+                if(entryEnd) {
+                    String entryName = Constants.LIBRARIES_FOLDER + '/' + sb;
+                    JarEntry entry = currentJar.getJarEntry(entryName);
+                    classpath.add(currentJar.getNestedJarFile(entry));
+                    sb.setLength(0);
+                    if(c < 0) break;
+                }
+                else sb.append((char) c);
+            }
+        }
         Consumer<Class<?>> runner = new Consumer<Class<?>>() {
             @Override
             @SneakyThrows
@@ -108,7 +136,7 @@ public class Launcher {
                 currentJar,
                 mainModuleName,
                 mainClassName,
-                Constants.LIBRARIES_FOLDER,
+                classpath,
                 runner);
 
     }
