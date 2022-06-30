@@ -5,3 +5,7 @@ plugins {
 ext {
     setProperty('jpms.module.name', 'net.woggioni.envelope.loader')
 }
+
+compileJava11 {
+    exclude('module-info.java')
+}

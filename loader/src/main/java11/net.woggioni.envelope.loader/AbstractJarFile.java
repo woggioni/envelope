@@ -22,6 +22,10 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.Permission;
+import java.util.Objects;
+import java.util.zip.ZipFile;
+import java.util.stream.Stream;
+import java.util.jar.JarEntry;
 
 /**
  * Base class for extended variants of {@link java.util.jar.JarFile}.
@@ -30,6 +34,42 @@ import java.security.Permission;
  */
 abstract class AbstractJarFile extends java.util.jar.JarFile {
 
+	private static final String META_INF_VERSION_PREFIX = "META-INF/versions/";
+
+	private final Runtime.Version version;  // current version
+	private final int versionFeature;       // version.feature()
+
+	private String getBasename(String name) {
+		if (name.startsWith(META_INF_VERSION_PREFIX)) {
+			int off = META_INF_VERSION_PREFIX.length();
+			int index = name.indexOf('/', off);
+			try {
+				// filter out dir META-INF/versions/ and META-INF/versions/*/
+				// and any entry with version > 'version'
+				if (index == -1 || index == (name.length() - 1) ||
+						Integer.parseInt(name, off, index, 10) > versionFeature) {
+					return null;
+				}
+			} catch (NumberFormatException x) {
+				return null; // remove malformed entries silently
+			}
+			// map to its base name
+			return name.substring(index + 1);
+		}
+		return name;
+	}
+
+	@Override
+	public Stream<JarEntry> versionedStream() {
+		return stream()
+				.map(JarEntry::getName)
+				.map(this::getBasename)
+				.filter(Objects::nonNull)
+				.distinct()
+				.map(this::getJarEntry)
+				.filter(Objects::nonNull);
+	}
+
 	/**
 	 * Create a new {@link AbstractJarFile}.
 	 * @param file the root jar file.
@@ -37,6 +77,8 @@ abstract class AbstractJarFile extends java.util.jar.JarFile {
 	 */
 	AbstractJarFile(File file, boolean verify, int mode) throws IOException {
 		super(file, verify, mode);
+		this.version = Runtime.version();
+		this.versionFeature = this.version.feature();
 	}
 
 	/**

@@ -59,3 +59,13 @@ Provider<Tar> tarTaskProvider = tasks.register("tar", Tar) {
 artifacts {
     tar tarTaskProvider
 }
+
+compileJava11 {
+    options.javaModuleMainClass = 'net.woggioni.envelope.Launcher'
+    options.compilerArgs += ['--add-reads', 'net.woggioni.envelope=ALL-UNNAMED']
+}
+
+multiReleaseJar {
+    patchModule('net.woggioni.envelope', project(':common').jar.archiveFile
+            .map(RegularFile.&getAsFile).map(File.&toString))
+}

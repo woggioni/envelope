@@ -58,7 +58,7 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
         }
     }
 
-    @Getter(onMethod_ = {@Input})
+    @Getter(onMethod_ = {@Input, @Optional})
     private final Property<String> mainClass;
 
     @Getter(onMethod_ = {@Input, @Optional})
@@ -235,7 +235,9 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
                 mainAttributes.put(new Attributes.Name("Launcher-Agent-Class"), Constants.AGENT_LAUNCHER);
                 mainAttributes.put(new Attributes.Name("Can-Redefine-Classes"), "true");
                 mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
-                mainAttributes.putValue(Constants.ManifestAttributes.MAIN_CLASS, mainClass.get());
+                if(mainClass.isPresent()) {
+                    mainAttributes.putValue(Constants.ManifestAttributes.MAIN_CLASS, mainClass.get());
+                }
                 if(mainModule.isPresent()) {
                     mainAttributes.putValue(Constants.ManifestAttributes.MAIN_MODULE, mainModule.get());
                 }

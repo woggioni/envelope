@@ -7,7 +7,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 class MainRunner {
     @SneakyThrows
@@ -16,6 +15,14 @@ class MainRunner {
                     String mainClassName,
                     List<JarFile> classpath,
                     Consumer<Class<?>> runner) {
+        if(mainClassName == null) {
+            throw new RuntimeException(
+                    String.format(
+                        "Missing main attribute '%s' from manifest",
+                        Constants.ManifestAttributes.MAIN_CLASS
+                    )
+            );
+        }
         URL[] urls = classpath.stream().map(Launcher::getURL).toArray(URL[]::new);
         try (URLClassLoader cl = new URLClassLoader(urls, ClassLoader.getSystemClassLoader().getParent())) {
             Thread.currentThread().setContextClassLoader(cl);

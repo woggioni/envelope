@@ -44,7 +44,6 @@ public class JarFileModuleFinder implements ModuleFinder {
         static final Pattern LEADING_DOTS = Pattern.compile("^\\.");
         static final Pattern TRAILING_DOTS = Pattern.compile("\\.$");
     }
-
     private final Map<String, Map.Entry<ModuleReference, Handler>> modules;
 
     @SneakyThrows
@@ -122,12 +121,9 @@ public class JarFileModuleFinder implements ModuleFinder {
     public JarFileModuleFinder(JarFile ...jarFiles) {
         this(Arrays.asList(jarFiles));
     }
-
-
-    private static final String META_INF_VERSION_PREFIX = "META-INF/versions/";
     private static Set<String> collectPackageNames(JarFile jarFile) {
         Set<String> result = jarFile
-            .stream()
+            .versionedStream()
             .filter(entry -> entry.getName().endsWith(".class"))
             .map(entry -> {
                 String entryName = entry.getName();

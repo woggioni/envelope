@@ -26,6 +26,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.Manifest;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * A wrapper used to create a copy of a {@link JarFile} so that it can be safely closed
@@ -38,7 +39,7 @@ class JarFileWrapper extends AbstractJarFile {
 	private final JarFile parent;
 
 	JarFileWrapper(JarFile parent) throws IOException {
-		super(parent.getRootJarFile().getFile());
+		super(parent.getRootJarFile().getFile(), true, ZipFile.OPEN_READ);
 		this.parent = parent;
 	}
 

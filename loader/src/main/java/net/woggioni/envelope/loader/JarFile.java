@@ -38,6 +38,7 @@ import java.util.jar.Manifest;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * Extended variant of {@link java.util.jar.JarFile} that behaves in the same way but
@@ -129,7 +130,7 @@ public class JarFile extends AbstractJarFile implements Iterable<java.util.jar.J
 
 	private JarFile(RandomAccessDataFile rootFile, String pathFromRoot, RandomAccessData data, JarEntryFilter filter,
 			JarFileType type, Supplier<Manifest> manifestSupplier) throws IOException {
-		super(rootFile.getFile());
+		super(rootFile.getFile(), true, ZipFile.OPEN_READ);
 		this.rootFile = rootFile;
 		this.pathFromRoot = pathFromRoot;
 		CentralDirectoryParser parser = new CentralDirectoryParser();
