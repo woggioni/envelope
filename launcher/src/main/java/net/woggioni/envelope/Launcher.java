@@ -59,6 +59,7 @@ public class Launcher {
     @SneakyThrows
     public static void main(String[] args) {
         Enumeration<URL> it = Launcher.class.getClassLoader().getResources(Constants.SYSTEM_PROPERTIES_FILE);
+        JarFile.registerUrlProtocolHandler();
         while (it.hasMoreElements()) {
             URL url = it.nextElement();
             Properties properties = new Properties();

@@ -2,7 +2,7 @@ package net.woggioni.envelope.loader;
 
 import lombok.SneakyThrows;
 import net.woggioni.envelope.loader.JarFile;
-import net.woggioni.envelope.loader.Handler;
+import net.woggioni.envelope.loader.jar.Handler;
 
 import java.io.File;
 import java.io.IOException;

@@ -38,7 +38,7 @@ import java.util.regex.Pattern;
  * @since 1.0.0
  * @see JarFile#registerUrlProtocolHandler()
  */
-public class Handler extends URLStreamHandler {
+public abstract class AbstractHandler extends URLStreamHandler {
 
 	// NOTE: in order to be found as a URL protocol handler, this class must be public,
 	// must be named Handler and must be in a package ending '.jar'
@@ -75,11 +75,11 @@ public class Handler extends URLStreamHandler {
 
 	private URLStreamHandler fallbackHandler;
 
-	public Handler() {
+	public AbstractHandler() {
 		this(null);
 	}
 
-	public Handler(JarFile jarFile) {
+	public AbstractHandler(JarFile jarFile) {
 		this.jarFile = jarFile;
 	}
 

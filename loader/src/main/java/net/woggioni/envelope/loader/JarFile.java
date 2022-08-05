@@ -16,6 +16,8 @@
 
 package net.woggioni.envelope.loader;
 
+import net.woggioni.envelope.loader.jar.Handler;
+
 import java.io.File;
 import java.io.FilePermission;
 import java.io.IOException;
@@ -60,7 +62,7 @@ public class JarFile extends AbstractJarFile implements Iterable<java.util.jar.J
 
 	private static final String PROTOCOL_HANDLER = "java.protocol.handler.pkgs";
 
-	private static final String HANDLERS_PACKAGE = "net.woggioni.xclassloader.jar";
+	private static final String HANDLERS_PACKAGE = "net.woggioni.envelope.loader";
 
 	private static final Bytes.AsciiBytes META_INF = new Bytes.AsciiBytes("META-INF/");
 
@@ -444,7 +446,7 @@ public class JarFile extends AbstractJarFile implements Iterable<java.util.jar.J
 	 * {@link URLStreamHandler} will be located to deal with jar URLs.
 	 */
 	public static void registerUrlProtocolHandler() {
-		Handler.captureJarContextUrl();
+		AbstractHandler.captureJarContextUrl();
 		String handlers = System.getProperty(PROTOCOL_HANDLER, "");
 		System.setProperty(PROTOCOL_HANDLER,
 				((handlers == null || handlers.isEmpty()) ? HANDLERS_PACKAGE : handlers + "|" + HANDLERS_PACKAGE));
