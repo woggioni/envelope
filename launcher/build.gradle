@@ -1,6 +1,6 @@
 import java.util.jar.Attributes
 plugins {
-    id 'net.woggioni.gradle.multi-release-jar'
+    alias catalog.plugins.multi.release.jar
 }
 
 ext {

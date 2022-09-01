@@ -2,13 +2,13 @@ import java.nio.file.Files
 
 plugins {
     id 'java-gradle-plugin'
-    id 'net.woggioni.gradle.lombok' apply false
+    alias(catalog.plugins.lombok) apply false
     id 'maven-publish'
 }
 
 allprojects {
     apply plugin: 'java-library'
-    apply plugin: 'net.woggioni.gradle.lombok'
+    apply plugin: catalog.plugins.lombok.get().pluginId
 
     repositories {
         mavenCentral()
@@ -23,7 +23,7 @@ allprojects {
     }
 
     lombok {
-        version = getProperty('version.lombok')
+        version = catalog.versions.lombok
     }
 
     configurations.all {
@@ -31,8 +31,8 @@ allprojects {
     }
 
     dependencies {
-        add("testImplementation", create(group: "org.junit.jupiter", name:"junit-jupiter-api", version: project["version.junitJupiter"]))
-        add("testRuntimeOnly", create(group: "org.junit.jupiter", name: "junit-jupiter-engine", version: project["version.junitJupiter"]))
+        testImplementation catalog.junit.jupiter.api
+        testRuntimeOnly catalog.junit.jupiter.engine
     }
 
     tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {

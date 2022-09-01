@@ -12,11 +12,21 @@ pluginManagement {
             url = 'https://woggioni.net/mvn/'
         }
     }
+}
 
-    plugins {
-        id 'net.woggioni.gradle.lombok' version getProperty('lys-gradle-plugins.version')
-        id 'net.woggioni.gradle.multi-version-jar' version getProperty('lys-gradle-plugins.version')
-        id 'net.woggioni.gradle.multi-release-jar' version getProperty('lys-gradle-plugins.version')
+dependencyResolutionManagement {
+    repositories {
+        maven {
+            url = 'https://woggioni.net/mvn/'
+            content {
+                includeGroup 'com.lys'
+            }
+        }
+    }
+    versionCatalogs {
+        catalog {
+            from group: 'com.lys', name: 'lys-catalog', version: getProperty('lys.version')
+        }
     }
 }
 
