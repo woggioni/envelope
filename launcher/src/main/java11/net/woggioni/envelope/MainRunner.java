@@ -2,7 +2,9 @@ package net.woggioni.envelope;
 
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import java.lang.module.Configuration;
+import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ResolvedModule;
 import java.lang.module.ModuleReference;
@@ -55,7 +57,14 @@ class MainRunner {
             ModuleLayer bootLayer = ModuleLayer.boot();
             Configuration bootConfiguration = bootLayer.configuration();
             JarFileModuleFinder jarFileModuleFinder = new JarFileModuleFinder(classpath);
-            Configuration cfg = bootConfiguration.resolve(jarFileModuleFinder, ModuleFinder.of(), Collections.singletonList(mainModuleName));
+            List<String> moduleNames = Collections.unmodifiableList(
+                jarFileModuleFinder.findAll()
+                    .stream()
+                    .map(ModuleReference::descriptor)
+                    .map(ModuleDescriptor::name)
+                    .collect(Collectors.toList())
+            );
+            Configuration cfg = bootConfiguration.resolve(jarFileModuleFinder, ModuleFinder.of(), moduleNames);
             Map<String, ClassLoader> packageMap = new TreeMap<>();
             ModuleLayer.Controller controller =
                 ModuleLayer.defineModules(cfg, Collections.singletonList(ModuleLayer.boot()), moduleName -> {
