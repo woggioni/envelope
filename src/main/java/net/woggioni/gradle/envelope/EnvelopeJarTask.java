@@ -1,34 +1,45 @@
 package net.woggioni.gradle.envelope;
 
+import groovy.lang.Closure;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import net.woggioni.envelope.Common;
 import net.woggioni.envelope.Constants;
+import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.internal.file.CopyActionProcessingStreamAction;
+import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.file.copy.CopyAction;
 import org.gradle.api.internal.file.copy.CopyActionProcessingStream;
 import org.gradle.api.internal.file.copy.FileCopyDetailsInternal;
+import org.gradle.api.java.archives.internal.DefaultManifest;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.JavaApplication;
 import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.WorkResult;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
+import org.gradle.internal.Cast;
 import org.gradle.util.GradleVersion;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,6 +50,7 @@ import java.util.function.Supplier;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -69,9 +81,38 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
     @Getter(onMethod_ = {@Input})
     private final Map<String, String> systemProperties = new TreeMap<>();
 
+    private final org.gradle.api.java.archives.Manifest manifest;
+
+    public org.gradle.api.java.archives.Manifest manifest() {
+        return manifest;
+    }
+
     @Input
-    public Set<Map.Entry<Object, Object>> getJavaAgents() {
-        return Collections.unmodifiableSet(javaAgents.entrySet());
+    @SneakyThrows
+    public byte[] getManifestHash() {
+        MessageDigest md = MessageDigest.getInstance("md5");
+        try(OutputStream outputStream = new DigestOutputStream(NullOutputStream.getInstance(), md)) {
+            ManifestUtils.generateJavaManifest(manifest).write(outputStream);
+        }
+        return md.digest();
+    }
+
+    public org.gradle.api.java.archives.Manifest manifest(Closure<org.gradle.api.java.archives.Manifest> closure) {
+        closure.setDelegate(manifest);
+        closure.call();
+        return manifest;
+    }
+
+    public org.gradle.api.java.archives.Manifest manifest(Action<? super org.gradle.api.java.archives.Manifest> action) {
+        action.execute(manifest);
+        return manifest;
+    }
+
+    @Input
+    public Set<String> getJavaAgents() {
+        return Collections.unmodifiableSet(javaAgents.entrySet().stream()
+                .map(entry -> entry.getKey().toString() + ':' + entry.getValue().toString())
+                .collect(Collectors.toSet()));
     }
 
     public void javaAgent(String className, String args) {
@@ -88,7 +129,7 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
 
 
     @Inject
-    public EnvelopeJarTask(ObjectFactory objects) {
+    public EnvelopeJarTask(ObjectFactory objects, FileResolver fileResolver) {
         setGroup("build");
         setDescription("Creates an executable jar file, embedding all of its runtime dependencies");
         BasePluginExtension basePluginExtension = getProject().getExtensions().getByType(BasePluginExtension.class);
@@ -98,6 +139,7 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
         getArchiveVersion().convention(getProject().getVersion().toString());
         getArchiveAppendix().convention("envelope");
 
+        manifest = new DefaultManifest(fileResolver);
         mainClass = objects.property(String.class);
         mainModule = objects.property(String.class);
         JavaApplication javaApplication = getProject().getExtensions().findByType(JavaApplication.class);
@@ -227,7 +269,7 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
             @Nonnull
             @SneakyThrows
             public WorkResult execute(@Nonnull CopyActionProcessingStream copyActionProcessingStream) {
-                Manifest manifest = new Manifest();
+                Manifest manifest = ManifestUtils.generateJavaManifest(EnvelopeJarTask.this.manifest);
                 Attributes mainAttributes = manifest.getMainAttributes();
                 mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
                 mainAttributes.put(Attributes.Name.MAIN_CLASS, Constants.DEFAULT_LAUNCHER);
@@ -310,4 +352,72 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
             }
         };
     }
+
+
+}
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+class ManifestUtils {
+    static Manifest generateJavaManifest(org.gradle.api.java.archives.Manifest gradleManifest) {
+        Manifest javaManifest = new Manifest();
+        addMainAttributesToJavaManifest(gradleManifest, javaManifest);
+        addSectionAttributesToJavaManifest(gradleManifest, javaManifest);
+        return javaManifest;
+    }
+
+    private static void addMainAttributesToJavaManifest(org.gradle.api.java.archives.Manifest gradleManifest, Manifest javaManifest) {
+        fillAttributes(gradleManifest.getAttributes(), javaManifest.getMainAttributes());
+    }
+
+    private static void addSectionAttributesToJavaManifest(org.gradle.api.java.archives.Manifest gradleManifest, Manifest javaManifest) {
+        Iterator<Map.Entry<String, org.gradle.api.java.archives.Attributes>> it = gradleManifest.getSections().entrySet().iterator();
+
+        while(it.hasNext()) {
+            Map.Entry<String, org.gradle.api.java.archives.Attributes> entry = it.next();
+            String sectionName = entry.getKey();
+            java.util.jar.Attributes targetAttributes = new java.util.jar.Attributes();
+            fillAttributes(entry.getValue(), targetAttributes);
+            javaManifest.getEntries().put(sectionName, targetAttributes);
+        }
+
+    }
+
+    private static void fillAttributes(org.gradle.api.java.archives.Attributes attributes, java.util.jar.Attributes targetAttributes) {
+        Iterator<Map.Entry<String, Object>> it = attributes.entrySet().iterator();
+
+        while(it.hasNext()) {
+            Map.Entry<String, Object> entry = it.next();
+            String mainAttributeName = entry.getKey();
+            String mainAttributeValue = resolveValueToString(entry.getValue());
+            if (mainAttributeValue != null) {
+                targetAttributes.putValue(mainAttributeName, mainAttributeValue);
+            }
+        }
+
+    }
+
+    private static String resolveValueToString(Object value) {
+        Object underlyingValue = value;
+        if (value instanceof Provider) {
+            Provider<?> provider = Cast.uncheckedCast(value);
+            if (!provider.isPresent()) {
+                return null;
+            }
+
+            underlyingValue = provider.get();
+        }
+
+        return underlyingValue.toString();
+    }
+}
+
+@NoArgsConstructor
+class NullOutputStream extends OutputStream {
+    @Getter
+    private static final OutputStream instance = new NullOutputStream();
+    public void write(byte[] b, int off, int len) {}
+
+    public void write(int b) {}
+
+    public void write(byte[] b) {}
 }
