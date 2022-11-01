@@ -15,14 +15,11 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.Manifest;
-
-import static java.util.jar.JarFile.MANIFEST_NAME;
 
 public class Launcher {
 
@@ -73,26 +70,7 @@ public class Launcher {
             }
         }
         JarFile currentJar = findCurrentJar();
-        URL manifestResource = null;
-        Enumeration<URL> enumeration = Launcher.class.getClassLoader().getResources(MANIFEST_NAME);
-        while (enumeration.hasMoreElements()) {
-            URL candidate = enumeration.nextElement();
-            URL subUrl = new URL(candidate.getFile());
-            String candidatePath = subUrl.getPath();
-            int i = candidatePath.indexOf("!/");
-            candidatePath = candidatePath.substring(0, i);
-            if (Objects.equals(currentJar.getName(), candidatePath)) {
-                manifestResource = candidate;
-                break;
-            }
-        }
-        if (Objects.isNull(manifestResource)) {
-            throw new RuntimeException("Launcher manifest not found");
-        }
-        Manifest mf = new Manifest();
-        try (InputStream is = manifestResource.openStream()) {
-            mf.read(is);
-        }
+        Manifest mf = currentJar.getManifest();
         Attributes mainAttributes = mf.getMainAttributes();
 
         String mainClassName = mainAttributes.getValue(Constants.ManifestAttributes.MAIN_CLASS);
