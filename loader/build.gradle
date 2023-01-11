@@ -1,5 +1,6 @@
 plugins {
     alias catalog.plugins.multi.release.jar
+    id 'maven-publish'
 }
 
 ext {
@@ -9,3 +10,17 @@ ext {
 compileJava11 {
     exclude('module-info.java')
 }
+
+
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            group = "net.woggioni.envelope"
+            artifactId = rootProject.name + '-' + project.name
+            version = rootProject.version
+            from components.java
+        }
+    }
+}
+

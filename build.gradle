@@ -14,8 +14,6 @@ allprojects {
         mavenCentral()
     }
 
-    group = "net.woggioni.gradle"
-
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(17)
@@ -42,7 +40,19 @@ allprojects {
     tasks.named("test", Test) {
         useJUnitPlatform()
     }
+
+    pluginManager.withPlugin('maven-publish') {
+        publishing {
+            repositories {
+                maven {
+                    url = publishMavenRepositoryUrl
+                }
+            }
+        }
+    }
 }
+
+group = "net.woggioni.gradle"
 
 version = getProperty("version.envelope")
 
@@ -90,14 +100,6 @@ gradlePlugin {
         create("EnvelopePlugin") {
             id = "net.woggioni.gradle.envelope"
             implementationClass = "net.woggioni.gradle.envelope.EnvelopePlugin"
-        }
-    }
-}
-
-publishing {
-    repositories {
-        maven {
-            url = publishMavenRepositoryUrl
         }
     }
 }
