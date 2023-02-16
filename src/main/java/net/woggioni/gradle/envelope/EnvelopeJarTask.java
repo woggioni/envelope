@@ -31,12 +31,16 @@ import org.gradle.util.GradleVersion;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.DigestInputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
@@ -147,7 +151,37 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
             mainClass.convention(javaApplication.getMainClass());
             mainModule.convention(javaApplication.getMainModule());
         }
-        from(getProject().tarTree(LauncherResource.instance), copySpec -> exclude(JarFile.MANIFEST_NAME));
+        File launcherFile = new File(getTemporaryDir(), "launcher.jar");
+        updateLauncherFile(launcherFile);
+        from(getProject().tarTree(launcherFile), copySpec -> exclude(JarFile.MANIFEST_NAME));
+    }
+
+    @SneakyThrows
+    private void updateLauncherFile(File launcherFile) {
+        byte[] buffer = new byte[0x10000];
+        boolean launcherFileToBeWritten;
+        if(launcherFile.exists()) {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            try (InputStream inputStream = new DigestInputStream(LauncherResource.instance.read(), md)) {
+                Common.write2Stream(inputStream, new NullOutputStream(), buffer);
+            }
+            byte[] sourceDigest = md.digest();
+            md.reset();
+            try (InputStream inputStream = new DigestInputStream(new FileInputStream(launcherFile), md)) {
+                Common.write2Stream(inputStream, new NullOutputStream(), buffer);
+            }
+            byte[] destinationDigest = md.digest();
+            launcherFileToBeWritten = !Arrays.equals(sourceDigest, destinationDigest);
+        } else {
+            launcherFileToBeWritten = true;
+        }
+        if(launcherFileToBeWritten) {
+            try (InputStream inputStream = LauncherResource.instance.read()) {
+                try (OutputStream outputStream = new FileOutputStream(launcherFile)) {
+                    Common.write2Stream(inputStream, outputStream, buffer);
+                }
+            }
+        }
     }
 
     @Input
