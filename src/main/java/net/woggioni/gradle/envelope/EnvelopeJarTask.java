@@ -10,6 +10,7 @@ import net.woggioni.envelope.Common;
 import net.woggioni.envelope.Constants;
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
+import org.gradle.api.Project;
 import org.gradle.api.internal.file.CopyActionProcessingStreamAction;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.file.copy.CopyAction;
@@ -23,6 +24,7 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.WorkResult;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.internal.Cast;
@@ -31,16 +33,12 @@ import org.gradle.util.GradleVersion;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.DigestInputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
@@ -66,6 +64,7 @@ import static java.util.zip.Deflater.NO_COMPRESSION;
 public class EnvelopeJarTask extends AbstractArchiveTask {
 
     private static final String MINIMUM_GRADLE_VERSION = "6.0";
+    private static final String EXTRACT_LAUNCHER_TASK_NAME = "extractEnvelopeLauncher";
 
     static {
         if (GradleVersion.current().compareTo(GradleVersion.version(MINIMUM_GRADLE_VERSION)) < 0) {
@@ -73,6 +72,8 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
                     " requires Gradle " + MINIMUM_GRADLE_VERSION + " or newer.");
         }
     }
+
+    private final Provider<ExtractLauncherTask> extractLauncherTaskProvider;
 
     @Getter(onMethod_ = {@Input, @Optional})
     private final Property<String> mainClass;
@@ -134,6 +135,15 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
 
     @Inject
     public EnvelopeJarTask(ObjectFactory objects, FileResolver fileResolver) {
+        Project rootProject = getProject().getRootProject();
+        TaskContainer rootProjectTasks = rootProject.getTasks();
+        if(rootProjectTasks.getNames().contains(EXTRACT_LAUNCHER_TASK_NAME)) {
+            extractLauncherTaskProvider = rootProjectTasks.named(EXTRACT_LAUNCHER_TASK_NAME, ExtractLauncherTask.class);
+        } else {
+            extractLauncherTaskProvider = rootProject.getTasks().register(EXTRACT_LAUNCHER_TASK_NAME, ExtractLauncherTask.class);
+        }
+        getInputs().files(extractLauncherTaskProvider);
+
         setGroup("build");
         setDescription("Creates an executable jar file, embedding all of its runtime dependencies");
         BasePluginExtension basePluginExtension = getProject().getExtensions().getByType(BasePluginExtension.class);
@@ -151,42 +161,7 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
             mainClass.convention(javaApplication.getMainClass());
             mainModule.convention(javaApplication.getMainModule());
         }
-        File launcherFile = new File(getTemporaryDir(), "launcher.jar");
-        updateLauncherFile(launcherFile);
-        from(getProject().tarTree(launcherFile), copySpec -> exclude(JarFile.MANIFEST_NAME));
-    }
-
-    @SneakyThrows
-    private void updateLauncherFile(File launcherFile) {
-        byte[] buffer = new byte[0x10000];
-        boolean launcherFileToBeWritten;
-        if(launcherFile.exists()) {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            try (InputStream inputStream = new DigestInputStream(LauncherResource.instance.read(), md)) {
-                Common.write2Stream(inputStream, new NullOutputStream(), buffer);
-            }
-            byte[] sourceDigest = md.digest();
-            md.reset();
-            try (InputStream inputStream = new DigestInputStream(new FileInputStream(launcherFile), md)) {
-                Common.write2Stream(inputStream, new NullOutputStream(), buffer);
-            }
-            byte[] destinationDigest = md.digest();
-            launcherFileToBeWritten = !Arrays.equals(sourceDigest, destinationDigest);
-        } else {
-            launcherFileToBeWritten = true;
-        }
-        if(launcherFileToBeWritten) {
-            try (InputStream inputStream = LauncherResource.instance.read()) {
-                try (OutputStream outputStream = new FileOutputStream(launcherFile)) {
-                    Common.write2Stream(inputStream, outputStream, buffer);
-                }
-            }
-        }
-    }
-
-    @Input
-    public String getLauncherArchiveHash() {
-        return Common.bytesToHex(Common.computeSHA256Digest(LauncherResource.instance::read));
+        from(getProject().tarTree(extractLauncherTaskProvider.map(ExtractLauncherTask::getLauncherTar)), copySpec -> exclude(JarFile.MANIFEST_NAME));
     }
 
     @RequiredArgsConstructor
