@@ -7,12 +7,15 @@ ext {
     setProperty('jpms.module.name', 'net.woggioni.envelope')
 }
 
+
 configurations {
     embedded {
         visible = false
         canBeConsumed = false
     }
-    compileOnly.extendsFrom(embedded)
+    compileOnly {
+        extendsFrom(embedded)
+    }
     tar {
         visible = true
         canBeConsumed = true
@@ -22,7 +25,7 @@ configurations {
 
 dependencies {
     embedded project(path: ":common", configuration: 'archives')
-    embedded project(path: ":loader", configuration: 'archives')
+    embedded project(path: ":loader", configuration: 'embed')
 }
 
 java {

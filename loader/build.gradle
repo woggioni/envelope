@@ -7,11 +7,14 @@ ext {
     setProperty('jpms.module.name', 'net.woggioni.envelope.loader')
 }
 
-compileJava11 {
-    exclude('module-info.java')
+configurations {
+    embed {
+        canBeResolved = true
+        canBeConsumed = true
+        visible = true
+        transitive = true
+    }
 }
-
-
 
 publishing {
     publications {
@@ -22,5 +25,26 @@ publishing {
             from components.java
         }
     }
+}
+
+
+tasks.register('embedJar', Jar) { jar ->
+    Provider<Jar> jarTaskProvider = tasks.named(JavaPlugin.JAR_TASK_NAME)
+    jar.inputs.files(jarTaskProvider)
+    archiveClassifier = 'embed'
+    from(zipTree(jarTaskProvider.map { it.archiveFile} )) {
+        exclude '**/module-info.class'
+    }
+    manifest{
+        attributes([
+            'Multi-Release': 'true'
+        ])
+    }
+}
+
+
+
+artifacts {
+    embed(embedJar)
 }
 
