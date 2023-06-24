@@ -1,24 +1,27 @@
 package net.woggioni.envelope;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.AbstractMap;
 import java.util.Map;
+import java.util.MissingFormatArgumentException;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
-import java.io.IOException;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Common {
@@ -113,5 +116,145 @@ public class Common {
     public static OutputStream write(File file, boolean buffered) {
         OutputStream result = new FileOutputStream(file);
         return buffered ? new BufferedOutputStream(result) : result;
+    }
+
+    /**
+     * @param template  Template text containing the variables to be replaced by this method. <br>
+     *                  Variables follow the format ${variable_name}. <br>
+     *                  Example: <br>
+     *                  "This template was created by ${author}."
+     * @param valuesMap A hashmap with the values of the variables to be replaced. <br>
+     *                  The key is the variable name and the value is the value to be replaced in the template. <br>
+     *                  Example: <br>
+     *                  {"author" =&gt; "John Doe"}
+     * @return The template text (String) with the variable names replaced by the values passed in the map. <br>
+     * If any of the variable names is not contained in the map it will be replaced by an empty string. <br>
+     * Example: <br>
+     * "This template was created by John Doe."
+     */
+    public static String renderTemplate(String template, Map<String, Object> valuesMap) {
+        return renderTemplate(template, valuesMap, null);
+    }
+
+
+    public static int indexOfWithEscape(String haystack, char needle, char escape, int begin, int end) {
+        int result = -1;
+        int cursor = begin;
+        if (end == 0) {
+            end = haystack.length();
+        }
+        int escapeCount = 0;
+        while (cursor < end) {
+            char c = haystack.charAt(cursor);
+            if (escapeCount > 0) {
+                --escapeCount;
+                if (c == escape) {
+                    result = -1;
+                }
+            } else if (escapeCount == 0) {
+                if (c == escape) {
+                    ++escapeCount;
+                }
+                if (c == needle) {
+                    result = cursor;
+                }
+            }
+            if (result >= 0 && escapeCount == 0) {
+                break;
+            }
+            ++cursor;
+        }
+        return result;
+    }
+
+    public static String renderTemplate(
+        String template,
+        Map<String, Object> valuesMap,
+        Map<String, Map<String, Object>> dictMap) {
+        StringBuilder sb = new StringBuilder();
+        Object absent = new Object();
+
+        int cursor = 0;
+        TokenScanner tokenScanner = new TokenScanner(template, '$', '$');
+        while (cursor < template.length()) {
+            tokenScanner.next();
+            int nextPlaceHolder;
+            switch (tokenScanner.getTokenType()) {
+                case TOKEN: {
+                    nextPlaceHolder = tokenScanner.getTokenIndex();
+                    while (cursor < nextPlaceHolder) {
+                        char ch = template.charAt(cursor++);
+                        sb.append(ch);
+                    }
+                    if (cursor + 1 < template.length() && template.charAt(cursor + 1) == '{') {
+                        String key;
+                        String context = null;
+                        String defaultValue = null;
+                        Object value;
+                        int end = template.indexOf('}', cursor + 1);
+                        int colon;
+                        if (dictMap == null)
+                            colon = -1;
+                        else {
+                            colon = indexOfWithEscape(template, ':', '\\', cursor + 1, template.length());
+                            if (colon >= end) colon = -1;
+                        }
+                        if (colon < 0) {
+                            key = template.substring(cursor + 2, end);
+                            value = valuesMap.getOrDefault(key, absent);
+                        } else {
+                            context = template.substring(cursor + 2, colon);
+                            int secondColon = indexOfWithEscape(template, ':', '\\', colon + 1, end);
+                            if (secondColon < 0) {
+                                key = template.substring(colon + 1, end);
+                            } else {
+                                key = template.substring(colon + 1, secondColon);
+                                defaultValue = template.substring(secondColon + 1, end);
+                            }
+                            value = Optional.ofNullable(dictMap.get(context))
+                                .map(m -> m.get(key))
+                                .orElse(absent);
+                        }
+                        if (value != absent) {
+                            sb.append(value.toString());
+                        } else {
+                            if (defaultValue != null) {
+                                sb.append(defaultValue);
+                            } else {
+                                throw new MissingFormatArgumentException(
+                                    String.format("Missing value for placeholder '%s'",
+                                        context == null ? key : context + ':' + key
+                                    )
+                                );
+                            }
+                        }
+                        cursor = end + 1;
+                    }
+                    break;
+                }
+                case ESCAPE:
+                    nextPlaceHolder = tokenScanner.getTokenIndex();
+                    while (cursor < nextPlaceHolder) {
+                        char ch = template.charAt(cursor++);
+                        sb.append(ch);
+                    }
+                    cursor = nextPlaceHolder + 1;
+                    sb.append(template.charAt(cursor++));
+                    break;
+                case END:
+                default:
+                    nextPlaceHolder = template.length();
+                    while (cursor < nextPlaceHolder) {
+                        char ch = template.charAt(cursor++);
+                        sb.append(ch);
+                    }
+                    break;
+            }
+        }
+        return sb.toString();
+    }
+
+    public static <T> Stream<T> opt2Stream(Optional<T> opt) {
+        return opt.map(Stream::of).orElse(Stream.empty());
     }
 }

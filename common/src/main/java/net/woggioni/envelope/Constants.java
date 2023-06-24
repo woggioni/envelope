@@ -1,9 +1,10 @@
 package net.woggioni.envelope;
 
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Constants {
@@ -16,10 +17,12 @@ public class Constants {
     public static final String SYSTEM_PROPERTIES_FILE = METADATA_FOLDER + "/system.properties";
 
     public static final String LIBRARIES_TOC = METADATA_FOLDER + "/libraries.txt";
+    public static final char EXTRA_CLASSPATH_ENTRY_SEPARATOR = ';';
 
     public static class ManifestAttributes {
         public static final String MAIN_MODULE = "Executable-Jar-Main-Module";
         public static final String MAIN_CLASS = "Executable-Jar-Main-Class";
+        public static final String EXTRA_CLASSPATH = "Executable-Jar-Extra-Classpath";
         public static final String ENTRY_HASH = "SHA-256-Digest";
     }
 

@@ -20,6 +20,7 @@ import org.gradle.api.java.archives.internal.DefaultManifest;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.JavaApplication;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Input;
@@ -85,6 +86,9 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
 
     @Getter(onMethod_ = {@Input})
     private final Map<String, String> systemProperties = new TreeMap<>();
+
+    @Getter(onMethod_ = {@Input})
+    private final ListProperty<String> extraClasspath;
 
     private final org.gradle.api.java.archives.Manifest manifest;
 
@@ -156,6 +160,7 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
         manifest = new DefaultManifest(fileResolver);
         mainClass = objects.property(String.class);
         mainModule = objects.property(String.class);
+        extraClasspath = objects.listProperty(String.class);
         JavaApplication javaApplication = getProject().getExtensions().findByType(JavaApplication.class);
         if(!Objects.isNull(javaApplication)) {
             mainClass.convention(javaApplication.getMainClass());
@@ -286,6 +291,11 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
                 mainAttributes.put(new Attributes.Name("Launcher-Agent-Class"), Constants.AGENT_LAUNCHER);
                 mainAttributes.put(new Attributes.Name("Can-Redefine-Classes"), "true");
                 mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
+                String separator = "" + Constants.EXTRA_CLASSPATH_ENTRY_SEPARATOR;
+                String extraClasspath = EnvelopeJarTask.this.extraClasspath.get().stream()
+                    .map(it -> it.replace(separator, separator + separator)
+                    ).collect(Collectors.joining(separator));
+                mainAttributes.put(new Attributes.Name(Constants.ManifestAttributes.EXTRA_CLASSPATH), extraClasspath);
                 if(mainClass.isPresent()) {
                     mainAttributes.putValue(Constants.ManifestAttributes.MAIN_CLASS, mainClass.get());
                 }
