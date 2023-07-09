@@ -173,7 +173,6 @@ public class Common {
         Map<String, Map<String, Object>> dictMap) {
         StringBuilder sb = new StringBuilder();
         Object absent = new Object();
-
         int cursor = 0;
         TokenScanner tokenScanner = new TokenScanner(template, '$', '$');
         while (cursor < template.length()) {
