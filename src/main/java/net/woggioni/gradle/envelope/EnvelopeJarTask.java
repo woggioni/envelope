@@ -139,12 +139,12 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
 
     @Inject
     public EnvelopeJarTask(ObjectFactory objects, FileResolver fileResolver) {
-        Project rootProject = getProject().getRootProject();
-        TaskContainer rootProjectTasks = rootProject.getTasks();
-        if(rootProjectTasks.getNames().contains(EXTRACT_LAUNCHER_TASK_NAME)) {
-            extractLauncherTaskProvider = rootProjectTasks.named(EXTRACT_LAUNCHER_TASK_NAME, ExtractLauncherTask.class);
+        Project project = getProject();
+        TaskContainer tasks = project.getTasks();
+        if(tasks.getNames().contains(EXTRACT_LAUNCHER_TASK_NAME)) {
+            extractLauncherTaskProvider = tasks.named(EXTRACT_LAUNCHER_TASK_NAME, ExtractLauncherTask.class);
         } else {
-            extractLauncherTaskProvider = rootProject.getTasks().register(EXTRACT_LAUNCHER_TASK_NAME, ExtractLauncherTask.class);
+            extractLauncherTaskProvider = tasks.register(EXTRACT_LAUNCHER_TASK_NAME, ExtractLauncherTask.class);
         }
         getInputs().files(extractLauncherTaskProvider);
 
