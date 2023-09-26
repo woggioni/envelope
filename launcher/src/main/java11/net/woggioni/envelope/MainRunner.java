@@ -85,6 +85,7 @@ class MainRunner {
             ModuleLayer layer = controller.layer();
             Module mainModule = layer.findModule(mainModuleName).orElseThrow(
                     () -> new IllegalStateException(String.format("Main module '%s' not found", mainModuleName)));
+            Thread.currentThread().setContextClassLoader(mainModule.getClassLoader());
             Optional<String> mainClassOpt = Optional.ofNullable(mainClassName);
             runner.accept(Optional.ofNullable(mainClassName)
                 .or(() -> mainModule.getDescriptor().mainClass())

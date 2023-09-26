@@ -18,9 +18,11 @@ import org.gradle.api.internal.file.copy.CopyActionProcessingStream;
 import org.gradle.api.internal.file.copy.FileCopyDetailsInternal;
 import org.gradle.api.java.archives.internal.DefaultManifest;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.plugins.BasePlugin;
 import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.JavaApplication;
 import org.gradle.api.provider.ListProperty;
+import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Input;
@@ -60,10 +62,12 @@ import java.util.zip.ZipOutputStream;
 
 import static java.util.zip.Deflater.BEST_COMPRESSION;
 import static java.util.zip.Deflater.NO_COMPRESSION;
+import static net.woggioni.gradle.envelope.EnvelopePlugin.ENVELOPE_GROUP_NAME;
 
 @SuppressWarnings({"unused" })
-public class EnvelopeJarTask extends AbstractArchiveTask {
+public abstract class EnvelopeJarTask extends AbstractArchiveTask {
 
+    private static final String DEFAULT_ARCHIVE_APPENDIX = ENVELOPE_GROUP_NAME;
     private static final String MINIMUM_GRADLE_VERSION = "6.0";
     private static final String EXTRACT_LAUNCHER_TASK_NAME = "extractEnvelopeLauncher";
 
@@ -76,19 +80,21 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
 
     private final Provider<ExtractLauncherTask> extractLauncherTaskProvider;
 
-    @Getter(onMethod_ = {@Input, @Optional})
-    private final Property<String> mainClass;
+    @Input
+    @Optional
+    public abstract Property<String> getMainClass();
 
-    @Getter(onMethod_ = {@Input, @Optional})
-    private final Property<String> mainModule;
+    @Input
+    @Optional
+    public abstract Property<String> getMainModule();
 
     private final Properties javaAgents = new Properties();
 
-    @Getter(onMethod_ = {@Input})
-    private final Map<String, String> systemProperties = new TreeMap<>();
+    @Input
+    public abstract MapProperty<String, String> getSystemProperties();
 
-    @Getter(onMethod_ = {@Input})
-    private final ListProperty<String> extraClasspath;
+    @Input
+    public abstract ListProperty<String> getExtraClasspath();
 
     private final org.gradle.api.java.archives.Manifest manifest;
 
@@ -128,10 +134,6 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
         javaAgents.put(className, args);
     }
 
-    public void systemProperty(String key, String value) {
-        systemProperties.put(key, value);
-    }
-
     public void includeLibraries(Object... files) {
         into(Constants.LIBRARIES_FOLDER, (copySpec) -> copySpec.from(files));
     }
@@ -148,23 +150,21 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
         }
         getInputs().files(extractLauncherTaskProvider);
 
-        setGroup("build");
+        setGroup(BasePlugin.BUILD_GROUP);
         setDescription("Creates an executable jar file, embedding all of its runtime dependencies");
         BasePluginExtension basePluginExtension = getProject().getExtensions().getByType(BasePluginExtension.class);
-        getDestinationDirectory().set(basePluginExtension.getDistsDirectory());
+        getDestinationDirectory().set(basePluginExtension.getLibsDirectory());
         getArchiveBaseName().convention(getProject().getName());
         getArchiveExtension().convention("jar");
         getArchiveVersion().convention(getProject().getVersion().toString());
-        getArchiveAppendix().convention("envelope");
+        getArchiveAppendix().convention(DEFAULT_ARCHIVE_APPENDIX);
 
         manifest = new DefaultManifest(fileResolver);
-        mainClass = objects.property(String.class);
-        mainModule = objects.property(String.class);
-        extraClasspath = objects.listProperty(String.class);
+        getSystemProperties().convention(new TreeMap<>());
         JavaApplication javaApplication = getProject().getExtensions().findByType(JavaApplication.class);
         if(!Objects.isNull(javaApplication)) {
-            mainClass.convention(javaApplication.getMainClass());
-            mainModule.convention(javaApplication.getMainModule());
+            getMainClass().convention(javaApplication.getMainClass());
+            getMainModule().convention(javaApplication.getMainModule());
         }
         from(getProject().tarTree(extractLauncherTaskProvider.map(ExtractLauncherTask::getLauncherTar)), copySpec -> exclude(JarFile.MANIFEST_NAME));
     }
@@ -292,15 +292,18 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
                 mainAttributes.put(new Attributes.Name("Can-Redefine-Classes"), "true");
                 mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
                 String separator = "" + Constants.EXTRA_CLASSPATH_ENTRY_SEPARATOR;
-                String extraClasspath = EnvelopeJarTask.this.extraClasspath.get().stream()
-                    .map(it -> it.replace(separator, separator + separator)
-                    ).collect(Collectors.joining(separator));
-                mainAttributes.put(new Attributes.Name(Constants.ManifestAttributes.EXTRA_CLASSPATH), extraClasspath);
-                if(mainClass.isPresent()) {
-                    mainAttributes.putValue(Constants.ManifestAttributes.MAIN_CLASS, mainClass.get());
+                ListProperty<String> extraClasspath = EnvelopeJarTask.this.getExtraClasspath();
+                if(extraClasspath.isPresent()) {
+                    String extraClasspathString = extraClasspath.get().stream()
+                        .map(it -> it.replace(separator, separator + separator)
+                        ).collect(Collectors.joining(separator));
+                    mainAttributes.put(new Attributes.Name(Constants.ManifestAttributes.EXTRA_CLASSPATH), extraClasspathString);
                 }
-                if(mainModule.isPresent()) {
-                    mainAttributes.putValue(Constants.ManifestAttributes.MAIN_MODULE, mainModule.get());
+                if(getMainClass().isPresent()) {
+                    mainAttributes.putValue(Constants.ManifestAttributes.MAIN_CLASS, getMainClass().get());
+                }
+                if(getMainModule().isPresent()) {
+                    mainAttributes.putValue(Constants.ManifestAttributes.MAIN_MODULE, getMainModule().get());
                 }
 
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -344,7 +347,7 @@ public class EnvelopeJarTask extends AbstractArchiveTask {
                     zipEntry.setMethod(ZipEntry.DEFLATED);
                     zipOutputStream.putNextEntry(zipEntry);
                     Properties props = new Properties();
-                    for(Map.Entry<String, String> entry : systemProperties.entrySet()) {
+                    for(Map.Entry<String, String> entry : getSystemProperties().get().entrySet()) {
                         props.setProperty(entry.getKey(), entry.getValue());
                     }
                     props.store(zipOutputStream, null);

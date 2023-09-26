@@ -256,4 +256,13 @@ public class Common {
     public static <T> Stream<T> opt2Stream(Optional<T> opt) {
         return opt.map(Stream::of).orElse(Stream.empty());
     }
+
+    public static <T> Optional<T> or(Supplier<T> ...suppliers) {
+        Optional<T> result = Optional.empty();
+        for(Supplier<T> supplier : suppliers) {
+            T value = supplier.get();
+            if(value != null) return Optional.of(value);
+        }
+        return result;
+    }
 }

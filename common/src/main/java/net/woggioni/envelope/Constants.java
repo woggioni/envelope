@@ -26,6 +26,13 @@ public class Constants {
         public static final String ENTRY_HASH = "SHA-256-Digest";
     }
 
+    public static class JvmProperties {
+        private static final String PREFIX = "envelope.";
+        public static final String MAIN_MODULE = PREFIX + "main.module";
+        public static final String MAIN_CLASS = PREFIX + "main.class";
+        public static final String EXTRA_CLASSPATH = PREFIX + "extra.classpath";
+    }
+
     /**
      * This value is used as a default file timestamp for all the zip entries when
      * <a href="https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/bundling/AbstractArchiveTask.html#isPreserveFileTimestamps--">AbstractArchiveTask.isPreserveFileTimestamps</a>

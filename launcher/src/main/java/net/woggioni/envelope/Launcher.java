@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.function.Consumer;
@@ -30,6 +29,7 @@ import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static net.woggioni.envelope.Common.or;
 import static net.woggioni.envelope.Constants.EXTRA_CLASSPATH_ENTRY_SEPARATOR;
 
 public class Launcher {
@@ -78,7 +78,10 @@ public class Launcher {
     }
 
     private static Stream<JarFile> getExtraClasspath(Attributes mainAttributes) {
-        return Common.opt2Stream(Optional.ofNullable(mainAttributes.getValue(Constants.ManifestAttributes.EXTRA_CLASSPATH))
+        return Common.opt2Stream(or(
+                    () -> System.getProperty(Constants.JvmProperties.EXTRA_CLASSPATH),
+                    () -> mainAttributes.getValue(Constants.ManifestAttributes.EXTRA_CLASSPATH)
+                )
                 .map(manifestAttribute -> {
                     Map<String, Map<String, Object>> dictMap = createContextMap();
                     return Common.renderTemplate(manifestAttribute, Collections.emptyMap(), dictMap);
@@ -93,8 +96,9 @@ public class Launcher {
                             cursor,
                             extraClasspathString.length()
                         );
+                        String classpathEntry = extraClasspathString.substring(cursor, sep < 0 ? extraClasspathString.length() : sep);
+                        paths.add(classpathEntry);
                         if(sep < 0) break;
-                        paths.add(extraClasspathString.substring(cursor, sep));
                         cursor = sep + 1;
                     }
                     return paths;
@@ -143,8 +147,14 @@ public class Launcher {
         Manifest mf = currentJar.getManifest();
         Attributes mainAttributes = mf.getMainAttributes();
 
-        String mainClassName = mainAttributes.getValue(Constants.ManifestAttributes.MAIN_CLASS);
-        String mainModuleName = mainAttributes.getValue(Constants.ManifestAttributes.MAIN_MODULE);
+        String mainClassName = or(
+            () -> System.getProperty(Constants.JvmProperties.MAIN_CLASS),
+            () -> mainAttributes.getValue(Constants.ManifestAttributes.MAIN_CLASS)
+        ).orElse(null);
+        String mainModuleName = or(
+            () -> System.getProperty(Constants.JvmProperties.MAIN_MODULE),
+            () -> mainAttributes.getValue(Constants.ManifestAttributes.MAIN_MODULE)
+        ).orElse(null);
         StringBuilder sb = new StringBuilder();
         List<JarFile> classpath = new ArrayList<>();
         URL libraryTocResource = Launcher.class.getClassLoader().getResource(Constants.LIBRARIES_TOC);
