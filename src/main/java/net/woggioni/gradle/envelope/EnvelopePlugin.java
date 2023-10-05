@@ -11,7 +11,7 @@ import org.gradle.api.tasks.bundling.Jar;
 
 public class EnvelopePlugin implements Plugin<Project> {
 
-    public static final String ENVELOPE_GROUP_NAME = " envelope";
+    public static final String ENVELOPE_GROUP_NAME = "envelope";
 
     @Override
     public void apply(Project project) {
