@@ -292,13 +292,17 @@ public abstract class EnvelopeJarTask extends AbstractArchiveTask {
                 mainAttributes.put(new Attributes.Name("Can-Redefine-Classes"), "true");
                 mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
                 String separator = "" + Constants.EXTRA_CLASSPATH_ENTRY_SEPARATOR;
-                ListProperty<String> extraClasspath = EnvelopeJarTask.this.getExtraClasspath();
-                if(extraClasspath.isPresent()) {
-                    String extraClasspathString = extraClasspath.get().stream()
-                        .map(it -> it.replace(separator, separator + separator)
-                        ).collect(Collectors.joining(separator));
-                    mainAttributes.put(new Attributes.Name(Constants.ManifestAttributes.EXTRA_CLASSPATH), extraClasspathString);
-                }
+                ListProperty<String> extraClasspathProperty = EnvelopeJarTask.this.getExtraClasspath();
+                java.util.Optional.of(extraClasspathProperty)
+                    .filter(ListProperty::isPresent)
+                    .map(ListProperty::get)
+                    .filter(l -> !l.isEmpty())
+                    .ifPresent(extraClasspath -> {
+                        String extraClasspathString = extraClasspath.stream()
+                            .map(it -> it.replace(separator, separator + separator)
+                            ).collect(Collectors.joining(separator));
+                        mainAttributes.put(new Attributes.Name(Constants.ManifestAttributes.EXTRA_CLASSPATH), extraClasspathString);
+                    });
                 if(getMainClass().isPresent()) {
                     mainAttributes.putValue(Constants.ManifestAttributes.MAIN_CLASS, getMainClass().get());
                 }
