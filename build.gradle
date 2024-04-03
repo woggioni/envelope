@@ -45,7 +45,18 @@ allprojects {
         publishing {
             repositories {
                 maven {
-                    url = publishMavenRepositoryUrl
+                    name = "Gitea"
+                    url = uri(getProperty('gitea.maven.url'))
+
+                    credentials(HttpHeaderCredentials) {
+                        name = "Authorization"
+                        value = "token ${System.getenv()["PUBLISHER_TOKEN"]}"
+                    }
+
+                    authentication {
+                        header(HttpHeaderAuthentication)
+                    }
+
                 }
             }
         }
