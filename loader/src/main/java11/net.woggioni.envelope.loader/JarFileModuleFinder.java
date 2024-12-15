@@ -459,7 +459,8 @@ public class JarFileModuleFinder implements ModuleFinder {
 
     /**
      * Returns {@code true} if the given name is a legal type name.
-     */    private static boolean isPackageName(String name) {
+     */
+    private static boolean isPackageName(String name) {
         return isTypeName(name);
     }
 

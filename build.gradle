@@ -16,7 +16,7 @@ allprojects {
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
 
@@ -113,11 +113,6 @@ gradlePlugin {
             implementationClass = "net.woggioni.gradle.envelope.EnvelopePlugin"
         }
     }
-}
-
-wrapper {
-    gradleVersion = getProperty('version.gradle')
-    distributionType = Wrapper.DistributionType.ALL
 }
 
 tasks.named('processTestResources') { ProcessResources it ->
