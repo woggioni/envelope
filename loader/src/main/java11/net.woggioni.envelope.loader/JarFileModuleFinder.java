@@ -192,7 +192,7 @@ public class JarFileModuleFinder implements ModuleFinder {
     private static Set<String> collectPackageNames(JarFile jarFile) {
         Set<String> result = jarFile
             .versionedStream()
-            .filter(entry -> entry.getName().endsWith(".class"))
+            .filter(zipEntry -> !zipEntry.isDirectory())
             .map(entry -> {
                 String entryName = entry.getName();
                 int lastSlash = entryName.lastIndexOf('/');

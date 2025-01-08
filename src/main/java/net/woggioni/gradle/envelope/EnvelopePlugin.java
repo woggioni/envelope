@@ -12,11 +12,13 @@ import org.gradle.api.tasks.bundling.Jar;
 public class EnvelopePlugin implements Plugin<Project> {
 
     public static final String ENVELOPE_GROUP_NAME = "envelope";
+    public static final String ENVELOPE_JAR_TASK_NAME = "envelopeJar";
+    public static final String ENVELOPE_RUN_TASK_NAME = "envelopeRun";
 
     @Override
     public void apply(Project project) {
         project.getPluginManager().apply(JavaPlugin.class);
-        Provider<EnvelopeJarTask> envelopeJarTaskProvider = project.getTasks().register("envelopeJar", EnvelopeJarTask.class, t -> {
+        Provider<EnvelopeJarTask> envelopeJarTaskProvider = project.getTasks().register(ENVELOPE_JAR_TASK_NAME, EnvelopeJarTask.class, t -> {
             t.setGroup(ENVELOPE_GROUP_NAME);
             t.setDescription("Package the application in a single executable jar file");
             t.includeLibraries(project.getConfigurations().named(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME));
@@ -25,7 +27,7 @@ public class EnvelopePlugin implements Plugin<Project> {
         project.getTasks().named(BasePlugin.ASSEMBLE_TASK_NAME, DefaultTask.class, assembleTask -> {
             assembleTask.dependsOn(envelopeJarTaskProvider);
         });
-        Provider<JavaExec> envelopeRunTaskProvider = project.getTasks().register("envelopeRun", JavaExec.class, t -> {
+        Provider<JavaExec> envelopeRunTaskProvider = project.getTasks().register(ENVELOPE_RUN_TASK_NAME, JavaExec.class, t -> {
             t.getInputs().files(envelopeJarTaskProvider);
             t.setGroup(ENVELOPE_GROUP_NAME);
             t.setDescription("Run the application in the envelope jar");
