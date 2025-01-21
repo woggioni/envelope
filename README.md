@@ -15,12 +15,12 @@ Declare the plugin in your build's `settings.gradle` like this
 pluginManagement {
     repositories {
         maven {
-            url = 'https://woggioni.net/mvn/'
+            url = 'https://gitea.woggioni.net/api/packages/woggioni/maven'
         }
     }
 
     plugins {
-        id "net.woggioni.gradle.envelope" version "2023.09.25"
+        id "net.woggioni.gradle.envelope" version "2025.01.21"
     }
 }
 ```
@@ -80,9 +80,11 @@ ${sys:user.home}/plugins
 ```
 
 ###### javaAgent
-This is a method accepting 2 strings, the first is the Java agent classname and the second one is the java agent arguments.
+This is a method accepting 2 strings, the first is the Java agent class name and the second one is the java agent arguments.
 It can be invoked multiple times to setup multiple java agents for the same JAR file. 
 All the java agents will be invoked before the application startup.
+
+Java agents configured in this way will always run together with the application and cannot be disabled.
 
 ### Example
 
@@ -107,7 +109,14 @@ envelopeJar {
 
 ### Limitations
 
-This plugin requires Gradle >= 6.0 and Java >=0 8 to build the executable jar file.
+- This plugin requires Gradle >= 6.0 and Java >=0 8 to build the executable jar file.
 The assembled envelope jar requires and Java >= 8 to run, if only `mainClass` is specified,
 if both `mainModule` and `mainClass` are specified the generated jar file will (try to) run in classpath mode on Java 8
 and in JPMS mode on Java > 8.
+
+- When running in JPMS mode (when the `mainModule` property is set), command line arguments like
+`--add-opens`, `--add-exports`, `--add-reads` won't work as JPMS is initialized after application startup
+
+- When running in JPMS mode custom stream handler need to added installed using `URL.setURLStreamHandlerFactory`,
+  setting the `java.protocol.handler.pkgs` system property does not work as it tries to load
+  the respective handler using the system classloader which, in an envelope application, can only load envelope own classes
