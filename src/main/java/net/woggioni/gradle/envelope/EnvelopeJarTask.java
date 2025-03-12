@@ -135,7 +135,10 @@ public abstract class EnvelopeJarTask extends AbstractArchiveTask {
     }
 
     public void includeLibraries(Object... files) {
-        into(Constants.LIBRARIES_FOLDER, (copySpec) -> copySpec.from(files));
+        into(Constants.LIBRARIES_FOLDER, (copySpec) -> {
+            copySpec.include("*.jar");
+            copySpec.from(files);
+        });
     }
 
 
