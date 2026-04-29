@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import net.woggioni.envelope.Common;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
@@ -13,6 +14,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+@CacheableTask
 public class ExtractLauncherTask extends DefaultTask {
 
     @Getter(onMethod_ = @OutputFile)

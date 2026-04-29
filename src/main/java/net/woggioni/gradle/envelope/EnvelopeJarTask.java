@@ -25,6 +25,7 @@ import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskContainer;
@@ -64,6 +65,7 @@ import static java.util.zip.Deflater.BEST_COMPRESSION;
 import static java.util.zip.Deflater.NO_COMPRESSION;
 import static net.woggioni.gradle.envelope.EnvelopePlugin.ENVELOPE_GROUP_NAME;
 
+@CacheableTask
 @SuppressWarnings({"unused" })
 public abstract class EnvelopeJarTask extends AbstractArchiveTask {
 
@@ -291,9 +293,12 @@ public abstract class EnvelopeJarTask extends AbstractArchiveTask {
                 mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
                 mainAttributes.put(Attributes.Name.MAIN_CLASS, Constants.DEFAULT_LAUNCHER);
                 mainAttributes.putValue("Multi-Release", "true");
-                mainAttributes.put(new Attributes.Name("Launcher-Agent-Class"), Constants.AGENT_LAUNCHER);
-                mainAttributes.put(new Attributes.Name("Can-Redefine-Classes"), "true");
-                mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
+                if(!getJavaAgents().isEmpty()) {
+                    mainAttributes.put(new Attributes.Name("Launcher-Agent-Class"), Constants.AGENT_LAUNCHER);
+                    mainAttributes.put(new Attributes.Name("Premain-Class"), Constants.AGENT_LAUNCHER);
+                    mainAttributes.put(new Attributes.Name("Can-Redefine-Classes"), "true");
+                    mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
+                }
                 String separator = "" + Constants.EXTRA_CLASSPATH_ENTRY_SEPARATOR;
                 ListProperty<String> extraClasspathProperty = EnvelopeJarTask.this.getExtraClasspath();
                 java.util.Optional.of(extraClasspathProperty)

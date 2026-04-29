@@ -16,7 +16,7 @@ allprojects {
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(21)
+            languageVersion = JavaLanguageVersion.of(25)
         }
     }
 
@@ -30,7 +30,9 @@ allprojects {
 
     dependencies {
         testImplementation catalog.junit.jupiter.api
+        testImplementation catalog.junit.jupiter.params
         testRuntimeOnly catalog.junit.jupiter.engine
+        testRuntimeOnly catalog.junit.platform.launcher
     }
 
     tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
